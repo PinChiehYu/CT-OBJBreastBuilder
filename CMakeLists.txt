@@ -4,12 +4,12 @@ project(MRI Breast Volume)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "http://slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/MRIBreastVolume")
+set(EXTENSION_HOMEPAGE "http://slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/CTOBJBreastBuilder")
 set(EXTENSION_CATEGORY "NCTU")
 set(EXTENSION_CONTRIBUTORS "NCTU Computer Graphics Laboratory")
 set(EXTENSION_DESCRIPTION "This is an example of a simple extension")
-set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/MRIBreastVolume.png")
-set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/MRIBreastVolume/Screenshots/1.png")
+set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/CTOBJBreastBuilder.png")
+set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/CTOBJBreastBuilder/Screenshots/1.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a space separated string, a list or 'NA' if any
 
 #-----------------------------------------------------------------------------
@@ -19,7 +19,7 @@ include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
 # Extension modules
-add_subdirectory(MRIBreastVolume)
+add_subdirectory(CTOBJBreastBuilder)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------

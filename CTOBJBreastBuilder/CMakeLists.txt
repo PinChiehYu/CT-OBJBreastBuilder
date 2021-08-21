@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------
-set(MODULE_NAME MRIBreastVolume)
+set(MODULE_NAME CTOBJBreastBuilder)
 
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
