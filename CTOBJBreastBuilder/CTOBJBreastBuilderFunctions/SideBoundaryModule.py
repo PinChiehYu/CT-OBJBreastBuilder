@@ -1,6 +1,6 @@
 import SimpleITK as sitk
 import numpy as np
-from MRIBreastVolumeFunctions.BreastSideModule import Point
+from CTOBJBreastBuilderFunctions.BreastSideModule import Point
 from collections import Counter
 
 def EvaluateSideBoundary(inputImage, v1Array, raisingL, raisingR):

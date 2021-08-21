@@ -8,8 +8,6 @@ import SimpleITK as sitk
 import sitkUtils
 import numpy as np
 import CTOBJBreastBuilderFunctions.PectoralSideModule as PectoralSideModule
-import CTOBJBreastBuilderFunctions.BreastSideModule as BreastSideModule
-import CTOBJBreastBuilderFunctions.SideBoundaryModule as SideBoundaryModule
 
 import math
 import random
@@ -296,13 +294,11 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.textureButton.enabled = self.inputModelSelector.currentNode() and self.OBJTextureSelector.currentNode()
 
     def onEstimateButton(self):
-        logic = MRIBreastVolumeLogic()
+        logic = CTOBJBreastBuilderLogic()
         logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
 
     def onReload(self):
         importlib.reload(PectoralSideModule)
-        importlib.reload(BreastSideModule)
-        importlib.reload(SideBoundaryModule)
         ScriptedLoadableModuleWidget.onReload(self)
 
     def calculateStatistics(self):
@@ -1220,7 +1216,7 @@ class PolyDataStitcher():
 
         return poly
 
-class MRIBreastVolumeTest(ScriptedLoadableModuleTest):
+class CTOBJBreastBuilderTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:
@@ -1236,9 +1232,9 @@ class MRIBreastVolumeTest(ScriptedLoadableModuleTest):
         """Run as few or as many tests as needed here.
         """
         self.setUp()
-        self.test_MRIBreastVolume1()
+        self.test_CTOBJBreastBuilderLogic1()
 
-    def test_MRIBreastVolume1(self):
+    def test_CTOBJBreastBuilderLogic1(self):
         """ Ideally you should have several levels of tests.  At the lowest level
         tests should exercise the functionality of the logic with different inputs
         (both valid and invalid).  At higher levels your tests should emulate the
@@ -1262,6 +1258,6 @@ class MRIBreastVolumeTest(ScriptedLoadableModuleTest):
         self.delayDisplay('Finished with download and loading')
 
         volumeNode = slicer.util.getNode(pattern="FA")
-        logic = MRIBreastVolumeLogic()
+        logic = CTOBJBreastBuilderLogic()
         self.assertIsNotNone( logic.HasImageData(volumeNode) )
         self.delayDisplay('Test passed!')
