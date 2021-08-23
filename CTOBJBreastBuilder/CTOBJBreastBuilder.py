@@ -272,6 +272,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.exportButton.connect("clicked(bool)", self.onExportButton)
         self.breastvolumeButton.connect("clicked(bool)", self.onBreastvolumeButton)
         self.statButton.connect('clicked(bool)', self.calculateStatistics)
+        self.segmentationGeometryButton.connect('clicked(bool)', self.onSegmentationGeometryButton)
 
         # Refresh Apply button state
         self.onInputVolumeSelect()
