@@ -192,6 +192,37 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.breastvolumeButton = qt.QPushButton("Closed Breast")
         self.breastvolumeButton.toolTip = ""
         parametersFormLayout_2.addRow(self.breastvolumeButton)
+        parametersFormLayout_2.addRow(" ", None)
+        
+        #
+        # Resampling Widget
+        #
+        self.segmentSelector = slicer.qMRMLNodeComboBox()
+        self.segmentSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
+        self.segmentSelector.selectNodeUponCreation = True
+        self.segmentSelector.addEnabled = False
+        self.segmentSelector.removeEnabled = False
+        self.segmentSelector.noneEnabled = False
+        self.segmentSelector.showHidden = False
+        self.segmentSelector.showChildNodeTypes = False
+        self.segmentSelector.setMRMLScene( slicer.mrmlScene )
+        self.segmentSelector.setToolTip( "Pick the input to the algorithm." )
+        parametersFormLayout_2.addRow("Segmentation : ", self.segmentSelector)
+        
+        self.oversamplingFactorSpinBox = qt.QDoubleSpinBox()
+        self.oversamplingFactorSpinBox.setRange(0.05, 2.0)
+        self.oversamplingFactorSpinBox.setSingleStep(0.05)
+        self.oversamplingFactorSpinBox.setValue(0.5)
+
+        self.segmentationGeometryButton = qt.QPushButton("Change Sampling")
+        self.segmentationGeometryButton.toolTip = "Press to change sampling factor."
+        self.segmentationGeometryButton.enabled = True
+        self.layout.addWidget(self.segmentationGeometryButton)
+
+        container = qt.QHBoxLayout()
+        container.addWidget(self.oversamplingFactorSpinBox)
+        container.addWidget(self.segmentationGeometryButton)
+        parametersFormLayout_2.addRow("Over Sampling Factor : ", container)
 
         #
         # Editting Segmentation
@@ -296,6 +327,35 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
     def onEstimateButton(self):
         logic = CTOBJBreastBuilderLogic()
         logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
+    
+    def onSegmentationGeometryButton(self):
+        segmentationNode = self.segmentSelector.currentNode()
+
+        #Create desired geometryImageData with overSamplingFactor
+        segmentationGeometryLogic = slicer.vtkSlicerSegmentationGeometryLogic()
+        segmentationGeometryLogic.SetInputSegmentationNode(segmentationNode)
+        segmentationGeometryLogic.SetSourceGeometryNode(segmentationNode)
+        segmentationGeometryLogic.SetOversamplingFactor(self.oversamplingFactorSpinBox.value)
+        segmentationGeometryLogic.CalculateOutputGeometry()
+        geometryImageData = segmentationGeometryLogic.GetOutputGeometryImageData()
+
+        segmentIDs = vtk.vtkStringArray()
+        segmentationNode.GetSegmentation().GetSegmentIDs(segmentIDs)
+
+        for index in range(segmentIDs.GetNumberOfValues()):
+            currentSegmentID = segmentIDs.GetValue(index)
+            currentSegment = segmentationNode.GetSegmentation().GetSegment(currentSegmentID)
+
+            currentLabelmap = currentSegment.GetRepresentation("Binary labelmap")
+
+            success = slicer.vtkOrientedImageDataResample.ResampleOrientedImageToReferenceOrientedImage(currentLabelmap, geometryImageData, currentLabelmap, False, True)
+
+            if not success:
+                print("Segment {}/{} failed to be resampled".format(segmentationNode.GetName(), currentSegmentID))
+
+        segmentationNode.Modified()
+
+        print("Finish Resolution Changing")
 
     def onReload(self):
         importlib.reload(PectoralSideModule)
