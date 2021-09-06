@@ -466,6 +466,7 @@ def GetBinaryBoundingBox(image):
     labelShapeStatistics = sitk.LabelShapeStatisticsImageFilter()
     labelShapeStatistics.Execute(image)
 
+    #[xstart, ystart, zstart, xsize, ysize, zsize]
     return list(labelShapeStatistics.GetBoundingBox(1))
 
 def CreateNewVolumeNode(image, name):
@@ -476,3 +477,14 @@ def CreateNewVolumeNode(image, name):
     volumeNode.SetName(name)
     volumeNode.CreateDefaultDisplayNodes()
     sitkUtils.PushVolumeToSlicer(image, volumeNode)
+
+def GetBaseImage(inputImage):
+    imageSize = inputImage.GetSize()
+    print(imageSize)
+
+    baseImage = sitk.Image(imageSize[0], imageSize[1], imageSize[2], inputImage.GetPixelID())
+    baseImage.CopyInformation(inputImage)
+    baseImage[:, 0, :] = 1
+    baseImage[:, imageSize[1]-1, :] = 1
+
+    return baseImage

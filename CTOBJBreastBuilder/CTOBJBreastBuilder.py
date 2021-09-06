@@ -51,52 +51,6 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.logic.initiate(self)
         # Instantiate and connect widgets ...
 
-        # CT相關UI
-
-        #
-        # Parameters Area
-        #
-        parametersCollapsibleButton = ctk.ctkCollapsibleButton()
-        parametersCollapsibleButton.text = "Create Chestwall"
-        #parametersCollapsibleButton.setFont(qt.QFont("Times", 12))
-        self.layout.addWidget(parametersCollapsibleButton)
-
-        # Layout within the dummy collapsible button
-        parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
-
-        #
-        # input volume selector
-        #
-        self.inputCTSelector = slicer.qMRMLNodeComboBox()
-        self.inputCTSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        self.inputCTSelector.selectNodeUponCreation = True
-        self.inputCTSelector.addEnabled = False
-        self.inputCTSelector.removeEnabled = False
-        self.inputCTSelector.noneEnabled = False
-        self.inputCTSelector.showHidden = False
-        self.inputCTSelector.showChildNodeTypes = False
-        self.inputCTSelector.setMRMLScene( slicer.mrmlScene )
-        self.inputCTSelector.setToolTip( "Pick the input to the algorithm." )
-        parametersFormLayout.addRow("Input Volume: ", self.inputCTSelector)
-
-        #
-        # Pectoral Smoothing Iterations Spin Box
-        #
-        self.pectoralSmoothingIterationSpinBox = qt.QSpinBox()
-        self.pectoralSmoothingIterationSpinBox.setRange(0, 20000)
-        self.pectoralSmoothingIterationSpinBox.setSingleStep(500)
-        self.pectoralSmoothingIterationSpinBox.setValue(4000)
-        parametersFormLayout.addRow("Pectoral Smoothing Iterations: ", self.pectoralSmoothingIterationSpinBox)
-
-        #
-        # Estimate Volume Button
-        #
-        self.createChestWallButton = qt.QPushButton("Create Chestwall")
-        self.createChestWallButton.toolTip = "Run the algorithm."
-        self.createChestWallButton.enabled = False
-        self.createChestWallButton.setFont(qt.QFont("Times", 15, qt.QFont.Black))
-        parametersFormLayout.addRow(self.createChestWallButton)
-
         # OBJ相關UI
         
         # Default Parameters
@@ -178,18 +132,18 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         parametersFormLayout_2.addRow(self.setupButton)
 
         # Transform Button
-        self.transformButton = qt.QPushButton("Transform")
+        self.transformButton = qt.QPushButton("Apply Transform")
         self.transformButton.toolTip = "Transform"
         self.transformButton.enabled = True
         parametersFormLayout_2.addRow(self.transformButton)
 
         # Model to Segment Button
-        self.exportButton = qt.QPushButton("Export")
+        self.exportButton = qt.QPushButton("Change Model Type")
         self.exportButton.toolTip = "Export input model to segment"
         parametersFormLayout_2.addRow(self.exportButton)
 
         # Testing
-        self.breastvolumeButton = qt.QPushButton("Closed Breast")
+        self.breastvolumeButton = qt.QPushButton("Create Closed Breast")
         self.breastvolumeButton.toolTip = ""
         parametersFormLayout_2.addRow(self.breastvolumeButton)
         parametersFormLayout_2.addRow(" ", None)
@@ -223,6 +177,52 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         container.addWidget(self.oversamplingFactorSpinBox)
         container.addWidget(self.segmentationGeometryButton)
         parametersFormLayout_2.addRow("Over Sampling Factor : ", container)
+
+        # CT相關UI
+
+        #
+        # Parameters Area
+        #
+        parametersCollapsibleButton = ctk.ctkCollapsibleButton()
+        parametersCollapsibleButton.text = "Create Chestwall"
+        #parametersCollapsibleButton.setFont(qt.QFont("Times", 12))
+        self.layout.addWidget(parametersCollapsibleButton)
+
+        # Layout within the dummy collapsible button
+        parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+
+        #
+        # input volume selector
+        #
+        self.inputCTSelector = slicer.qMRMLNodeComboBox()
+        self.inputCTSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        self.inputCTSelector.selectNodeUponCreation = True
+        self.inputCTSelector.addEnabled = False
+        self.inputCTSelector.removeEnabled = False
+        self.inputCTSelector.noneEnabled = False
+        self.inputCTSelector.showHidden = False
+        self.inputCTSelector.showChildNodeTypes = False
+        self.inputCTSelector.setMRMLScene( slicer.mrmlScene )
+        self.inputCTSelector.setToolTip( "Pick the input to the algorithm." )
+        parametersFormLayout.addRow("Input Volume: ", self.inputCTSelector)
+
+        #
+        # Pectoral Smoothing Iterations Spin Box
+        #
+        self.pectoralSmoothingIterationSpinBox = qt.QSpinBox()
+        self.pectoralSmoothingIterationSpinBox.setRange(0, 20000)
+        self.pectoralSmoothingIterationSpinBox.setSingleStep(500)
+        self.pectoralSmoothingIterationSpinBox.setValue(4000)
+        parametersFormLayout.addRow("Pectoral Smoothing Iterations: ", self.pectoralSmoothingIterationSpinBox)
+
+        #
+        # Estimate Volume Button
+        #
+        self.createChestWallButton = qt.QPushButton("Create Chestwall")
+        self.createChestWallButton.toolTip = "Run the algorithm."
+        self.createChestWallButton.enabled = False
+        self.createChestWallButton.setFont(qt.QFont("Times", 15, qt.QFont.Black))
+        parametersFormLayout.addRow(self.createChestWallButton)
 
         #
         # Editting Segmentation
@@ -299,6 +299,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
     def onSetupButton(self):
         # setting current segment node    
         
+        # 待修正：如果沒有要讓使用者選擇SegmentationNode就不需要開Selector
         current = slicer.util.getNode("Segmentation")
         self.inputSegmenationSelector.setCurrentNode(current)
         self.inputSegmenationSelector.setMRMLScene(slicer.mrmlScene)
@@ -308,10 +309,11 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.logic.performTransform(self.inputModelSelector.currentNode(), self.inputSegmenationSelector.currentNode())
 
     def onExportButton(self):
-        self.logic.changeType()
+        self.logic.changeType(self.inputCTSelector.currentNode())
 
     def onBreastvolumeButton(self):
-        self.logic.Breastvolume()
+        self.logic.breastVolume()
+        #self.logic.calculateBreastBoundingBox()
 
     def setPoint(self):
         self.markupPointWidget.setCurrentNode(self.pointSelector.currentNode())
@@ -326,8 +328,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.textureButton.enabled = self.inputModelSelector.currentNode() and self.OBJTextureSelector.currentNode()
 
     def onEstimateButton(self):
-        logic = CTOBJBreastBuilderLogic()
-        logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
+        self.logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
     
     def onSegmentationGeometryButton(self):
         segmentationNode = self.segmentSelector.currentNode()
@@ -417,8 +418,14 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         self.createdModelNodes = []
         self.markerName = "Reference_Breast_Position"
         self.mainModelNode = None
-        self.chestWallName = "Poggers"
-        self.numofbreast = 0
+        self.chectWallSegNodeName = "ChestWallSegNode"
+        self.chestWallName = "ChestWall"
+        self.numOfBreast = 2
+
+        self.breastModelName = "Breast_"
+
+        self.topZBounding = 0
+        self.botZBounding = 0
 
     def HasImageData(self,volumeNode):
         """This is an example logic method that
@@ -443,19 +450,49 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
         #把一部分不需要的資料消除
         originImage = inputImage
-        truncatedImage = self.TruncateUnecessaryPart(inputImage)
+        truncatedImage = self.TruncateUnecessaryPart(inputImage, self.topZBounding, self.botZBounding)
 
         result = PectoralSideModule.EvaluatePectoralSide(truncatedImage, pectoralSmoothingIterations)
 
         vtk_result = self.sitkImageToVtkOrientedImage(result)
         segmentationNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        segmentationNode.SetName('test_seg')
+        segmentationNode.SetName(self.chectWallSegNodeName)
         segmentationNode.CreateDefaultDisplayNodes()
-        segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, "Poggers")
+        segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, self.chestWallName)
+    
+    def calculateBreastBoundingBox(self):
+        #頂端為0，底端為max
+        topZBounding = sys.maxsize
+        botZBounding = 0
+
+        for i in range(self.numOfBreast):
+            breastModelSegNode = slicer.util.getNode(self.breastModelName + str(i) + "_segmentation")
+
+            image = self.segmentsToSitkImage(breastModelSegNode, True)
+            PectoralSideModule.CreateNewVolumeNode(image, str(i))
+
+            bounding = PectoralSideModule.GetBinaryBoundingBox(image) #[xstart, ystart, zstart, xsize, ysize, zsize]
+
+            topZBounding = bounding[2] if topZBounding > bounding[2] else topZBounding
+            botZBounding = bounding[2] + bounding[5] if bounding[2] + bounding[5] > botZBounding else botZBounding
+        
+        print("top:" + str(topZBounding) + ", bot:" + str(botZBounding))
+
+        self.topZBounding = topZBounding
+        self.botZBounding = botZBounding
+
+        return topZBounding, botZBounding
 
 
-    def TruncateUnecessaryPart(self, image):
+    def TruncateUnecessaryPart(self, image, topZBounding = 0, botZBounding = 0, expansion = 3):
         imageSize = image.GetSize()
+
+        """
+        topZBounding = max(topZBounding - expansion, 0)
+        botZBounding = min(botZBounding + expansion + 1, imageSize[2])
+        truncated = image[:, :, topZBounding : botZBounding]
+        """
+
         truncated = image[:, :, imageSize[2] // 5:]
 
         return truncated
@@ -489,28 +526,12 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         segmentationDisplayNode.SetSegmentOpacity3D(segmentId2, 0.5)
         segmentation.GetSegment(segmentId2).SetColor(1.0,1.0,1.0)
 
-        # volume to seg
-        # 這段不需要，因為已經有test_seg
-        #self.chestWallName = labelmapVolumeNode.GetName()
-        #seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        #slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
-        #seg.CreateClosedSurfaceRepresentation()
-
-        # 把在test_seg的胸壁加入到Segmentation
-        chestWallNode = slicer.util.getNode("test_seg")
-        segmentation_s = chestWallNode.GetSegmentation()
-
-        sourceSegmentId = segmentation_s.GetSegmentIdBySegmentName(self.chestWallName)
-        segmentation.CopySegmentFromSegmentation(segmentation_s, sourceSegmentId)
-
-        slicer.mrmlScene.RemoveNode(chestWallNode)
-
         # change fiducial node name and set to blue
         fiducialNode = slicer.util.getNode("Fiducials")
 
-        ### 修改
+        ### 根據顏色，修改載入的fiducialNode名字
         color = fiducialNode.GetDisplayNode().GetSelectedColor()
-        if color==(1.0,0.0,0.0):
+        if color == (1.0, 0.0, 0.0):
             #代表選到segnode(想要是1)
             fiducialNode.SetName("seg_fid")
             next_fiducialNode = slicer.util.getNode("Fiducials")
@@ -531,77 +552,72 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         transformNode.SetName("Registration Transform")
         parameters = {}
     
-        f1 = slicer.util.getNode("seg_fid")
-        f1.GetMarkupsDisplayNode().SetTextScale(0.0)
-        f2 = slicer.util.getNode("model_fid")
-        f2.GetMarkupsDisplayNode().SetTextScale(0.0)
+        try:
+            seg_fid = slicer.util.getNode("seg_fid")
+            seg_fid.GetMarkupsDisplayNode().SetTextScale(0.0)
+            model_fid = slicer.util.getNode("model_fid")
+            model_fid.GetMarkupsDisplayNode().SetTextScale(0.0)
+        except:
+            print("Fiducal not found!")
+            return
 
         parameters["saveTransform"] = transformNode.GetID()
-        parameters["movingLandmarks"] = f2.GetID()
-        parameters["fixedLandmarks"] = f1.GetID()
-        fiduciaReg = slicer.modules.fiducialregistration
-        slicer.cli.runSync(fiduciaReg, None, parameters)
+        parameters["movingLandmarks"] = model_fid.GetID()
+        parameters["fixedLandmarks"] = seg_fid.GetID()
+        fiducialReg = slicer.modules.fiducialregistration
+        slicer.cli.runSync(fiducialReg, None, parameters)
 
-        tmatrix = vtk.vtkMatrix4x4()
-        saveTransformNode = slicer.util.getNode(parameters["saveTransform"])
-        saveTransformNode.GetMatrixTransformToParent(tmatrix)
-        #transformMatrix = slicer.util.arrayFromVTKMatrix(tmatrix)
+        mat = vtk.vtkMatrix4x4()
+        transformNode.GetMatrixTransformToParent(mat)
+        transform = vtk.vtkTransform()
+        transform.SetMatrix(mat)
 
-        f2.SetAndObserveTransformNodeID(transformNode.GetID())
+        model_fid.SetAndObserveTransformNodeID(transformNode.GetID())
 
-        color = f1.GetDisplayNode().GetSelectedColor()
+        color = seg_fid.GetDisplayNode().GetSelectedColor()
         if color==(1.0,0.0,0.0):
-            print("color=red")
             modelNode.SetAndObserveTransformNodeID(transformNode.GetID())
-            print("transform:",self.numofbreast)
-            for i in range(self.numofbreast):
-                breast = slicer.util.getNode("MergedPolyData_"+str(i))
-                breast.SetAndObserveTransformNodeID(transformNode.GetID())
-        else:
-            # 移動segmentation比較方便
-            print("color=",color)
-            segNode.ApplyTransformMatrix(tmatrix)
-    
+            print("color=red")
+            print("transform:", self.numOfBreast)
 
-    def changeType(self):    
+            for i in range(self.numOfBreast):
+                breastNode = slicer.util.getNode(self.breastModelName + str(i))
+
+                #將polydata實際做轉移，而不是只轉觀察方向
+                applyTransform = vtk.vtkTransformPolyDataFilter()
+                applyTransform.SetTransform(transform)
+                applyTransform.SetInputData(breastNode.GetPolyData())
+                applyTransform.Update()
+
+                breastNode.SetAndObservePolyData(applyTransform.GetOutput())
+
+    def changeType(self, inputVolume):    
         ### export model to seg ###
-        print("export:",self.numofbreast)
-        for i in range(self.numofbreast):
-            modelNode = slicer.util.getNode("MergedPolyData_"+str(i))
-            seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode", "MergedPolyData_"+str(i)+"-segmentation")
-            slicer.modules.segmentations.logic().ImportModelToSegmentationNode(modelNode, seg)
-            seg.CreateBinaryLabelmapRepresentation()
-        
-        return
+        print("export:", self.numOfBreast)
+        for i in range(self.numOfBreast):
+            modelNode = slicer.util.getNode(self.breastModelName + str(i))
+            segNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode", self.breastModelName + str(i) + "_segmentation")
+            segNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
+            slicer.modules.segmentations.logic().ImportModelToSegmentationNode(modelNode, segNode)
+            segNode.CreateBinaryLabelmapRepresentation()
 
-    def Breastvolume(self):
+    def breastVolume(self):
         ### 移動test_seg到胸部的segmentation
-        chestWallNode = slicer.util.getNode("Segmentation")
-        segmentation_s = chestWallNode.GetSegmentation()
-        sourceSegmentId = segmentation_s.GetSegmentIdBySegmentName(self.chestWallName)
+        chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
+        chestWallSeg = chestWallSegNode.GetSegmentation()
+        sourceSegmentId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
 
-        for n in range(self.numofbreast):
-            mergedbreastNode = slicer.util.getNode("MergedPolyData_"+str(n)+"-segmentation")
-            segmentation_d = mergedbreastNode.GetSegmentation()
-            segmentation_d.CopySegmentFromSegmentation(segmentation_s, sourceSegmentId)
-            
-            ### 為segmentation增加一個相對應的labelmapvolume
-            #segmentationNode = slicer.util.getNode("MergedPolyData_"+str(i)+"-segmentation")
-            labelmapVolumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode")
-            labelmapVolumeNode.SetName("labelmapvolume_"+str(n))
-            slicer.modules.segmentations.logic().ExportAllSegmentsToLabelmapNode(mergedbreastNode, labelmapVolumeNode, slicer.vtkSegmentation.EXTENT_REFERENCE_GEOMETRY)
+        for n in range(self.numOfBreast):
+            breastModelSegNode = slicer.util.getNode(self.breastModelName + str(n) + "_segmentation")
+            breastModelSeg = breastModelSegNode.GetSegmentation()
+            breastModelSeg.CopySegmentFromSegmentation(chestWallSeg, sourceSegmentId)
 
-            # 換data type to scalar volume
-            outputvolumenode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
-            outputvolumenode.SetName("scalarvolume_"+str(n))
-            sef = slicer.modules.volumes.logic().CreateScalarVolumeFromVolume(slicer.mrmlScene, outputvolumenode, labelmapVolumeNode)
-
-            image = sitkUtils.PullVolumeFromSlicer(outputvolumenode)
-            resVolume = sitk.Cast(image, sitk.sitkInt16)
+            image = self.segmentsToSitkImage(breastModelSegNode)
+            PectrolSideModule.CreateNewVolumeNode(image, self.breastModelName + str(n) + "_Raw")
 
             # (281黃, 206綠, 268紅)
             image_shape = image.GetSize()
-            for i in range(int(image_shape[2]*2/3)):
+            for i in range(int(image_shape[2] * 2 / 3)):
                 find_img = image[0:image_shape[0], 0:image_shape[1], i]
                 # 2d array.shape=(1024,1024)
                 # 總共會有三個值0,1,2
@@ -620,28 +636,47 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
                         # 再往後長  
                         elif check==True and array[k][j]==0:
                             array[k][j]=1
-
         
                 res = sitk.GetImageFromArray(array)
-                resVolume = sitk.Paste(
-                            destinationImage = resVolume,
+                image = sitk.Paste(
+                            destinationImage = image,
                             sourceImage = sitk.JoinSeries(res),
-                            sourceSize = [image_shape[0]-1, image_shape[1]-1, 1],
+                            sourceSize = [image_shape[0], image_shape[1], 1],
                             sourceIndex = [0, 0, 0],
                             destinationIndex = [0, 0, i])
             
-            vtkt = self.sitkImageToVtkOrientedImage(resVolume)
+            vtkt = self.sitkImageToVtkOrientedImage(image)
             segmentationNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+
             if n==0:
-                segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_"+str(n), [1.0, 1.0, 0.0])
+                segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_" + str(n), [1.0, 1.0, 0.0])
             else:
-                segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_"+str(n), [0.0, 0.0, 1.0])
+                segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_" + str(n), [0.0, 0.0, 1.0])
 
             # show in 3d
             segmentationNode.CreateClosedSurfaceRepresentation()
-
-        return
     
+    def segmentsToSitkImage(self, segmentationNode, extent = False):
+        mode = slicer.vtkSegmentation.EXTENT_REFERENCE_GEOMETRY if extent else slicer.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS 
+
+        ### 為segmentation增加一個相對應的labelmapvolume
+        labelmapVolumeNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode")
+        slicer.modules.segmentations.logic().ExportAllSegmentsToLabelmapNode(segmentationNode, labelmapVolumeNode, mode)
+
+        # 換data type to scalar volume
+        outputvolumenode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+        slicer.modules.volumes.logic().CreateScalarVolumeFromVolume(slicer.mrmlScene, outputvolumenode, labelmapVolumeNode)
+
+        image = sitkUtils.PullVolumeFromSlicer(outputvolumenode)
+        image = sitk.Cast(image, sitk.sitkInt16)
+
+        direction = image.GetDirection()
+        image = sitk.Flip(image, [direction[0] < 0, direction[4] < 0, direction[8] < 0])
+
+        slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
+        slicer.mrmlScene.RemoveNode(outputvolumenode)
+
+        return image
 
     ###以下是膠帶部分###
     def showTextureOnModel(self, modelNode, textureImageNode):
@@ -760,14 +795,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         normalFilter.SplittingOff()
         normalFilter.Update()
 
-        '''
-        # alignCenter
-        polyData = normalFilter.GetOutput()
-        points_array = vtk_to_numpy(polyData.GetPoints().GetData())
-        center = points_array.sum(axis=0) / points_array.shape[0]
-        np.copyto(points_array, points_array - center)
-        polyData.GetPoints().GetData().Modified()
-        '''
         polyData = normalFilter.GetOutput()
         modelNode.SetAndObservePolyData(polyData)
 
@@ -868,8 +895,8 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
         fiducialNode = slicer.util.getNode(self.markerName)
         numFids = fiducialNode.GetNumberOfFiducials()
-        self.numofbreast = numFids
-        print("numofbreast:",self.numofbreast)
+        self.numOfBreast = numFids
+        print("numOfBreast:",self.numOfBreast)
         last_point = 1
         if numFids>=2:
             last_point = 2
@@ -889,7 +916,7 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
         wallGenerator = BreastWallGenerator()
 
-        for i in range(self.numofbreast):
+        for i in range(self.numOfBreast):
             # 尋找最接近選取點的mesh
             connectFilter = vtk.vtkPolyDataConnectivityFilter()
             connectFilter.SetInputData(self.modifidedModelNode.GetPolyData())
@@ -898,12 +925,9 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             connectFilter.Update()
 
             rawBreastPolyData = connectFilter.GetOutput()
-            self.createNewModelNode(connectFilter.GetOutput(), "Breast_{}".format(i))
 
-            mergedPolyData, edgePolydata, wallMesh = wallGenerator.generateWall(rawBreastPolyData, True)
-            self.createNewModelNode(mergedPolyData, "MergedPolyData_" + str(i))
-            self.createNewModelNode(edgePolydata, "edgePolydata_" + str(i))
-            self.createNewModelNode(wallMesh, "wallMesh_" + str(i))
+            smoothedBreastPolyData = wallGenerator.generateWall(rawBreastPolyData, True)
+            self.createNewModelNode(smoothedBreastPolyData, "Breast_{}".format(i))
     
 class BreastWallGenerator():
     def generateWall(self, breastPolyData, ripEdge):
@@ -919,15 +943,12 @@ class BreastWallGenerator():
         else:
             smoothedBreastPolyData = refinedBreastPolyData
 
-        
         # 取得平滑後的邊緣
-        edgePolydata, _ = self.extractBoundaryPoints(smoothedBreastPolyData)
+        #edgePolydata, _ = self.extractBoundaryPoints(smoothedBreastPolyData)
+        #wallMesh = self.createWallMesh(edgePolydata)
+        #mergedPolyData = self.mergeBreastAndBoundary(smoothedBreastPolyData, wallMesh)
         
-        wallMesh = self.createWallMesh(edgePolydata)
-
-        mergedPolyData = self.mergeBreastAndBoundary(smoothedBreastPolyData, wallMesh)
-        
-        return smoothedBreastPolyData, edgePolydata, wallMesh
+        return smoothedBreastPolyData #, edgePolydata, wallMesh
 
     def refineBreastPolyData(self, polyData, holeSize):
         holeFiller = vtk.vtkFillHolesFilter()
@@ -1009,6 +1030,14 @@ class BreastWallGenerator():
 
         return geometryFilter.GetOutput()
 
+    def createNewModelNode(self, polyData, nodeName):
+        modelNode = slicer.mrmlScene.AddNode(slicer.vtkMRMLModelNode())
+        modelNode.SetName(nodeName)
+        modelNode.CreateDefaultDisplayNodes()
+        modelNode.SetAndObservePolyData(polyData)
+        return modelNode
+
+"""
     def createWallMesh(self, edgePolyData):
         bounds = edgePolyData.GetBounds()
         Point_coordinates = edgePolyData.GetPoints().GetData()
@@ -1142,14 +1171,6 @@ class BreastWallGenerator():
         normalFilter.Update()
 
         return normalFilter.GetOutput()
-        
-
-    def createNewModelNode(self, polyData, nodeName):
-        modelNode = slicer.mrmlScene.AddNode(slicer.vtkMRMLModelNode())
-        modelNode.SetName(nodeName)
-        modelNode.CreateDefaultDisplayNodes()
-        modelNode.SetAndObservePolyData(polyData)
-        return modelNode
 
 class PolyDataStitcher():
     def extract_points(self, source):
@@ -1276,6 +1297,7 @@ class PolyDataStitcher():
         poly.BuildLinks()
 
         return poly
+"""
 
 class CTOBJBreastBuilderTest(ScriptedLoadableModuleTest):
     """
