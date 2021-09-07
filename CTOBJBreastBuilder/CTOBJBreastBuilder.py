@@ -313,7 +313,6 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
 
     def onBreastVolumeButton(self):
         self.logic.breastVolume()
-        #self.logic.calculateBreastBoundingBox()
 
     def setPoint(self):
         self.markupPointWidget.setCurrentNode(self.pointSelector.currentNode())
@@ -450,7 +449,7 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
         #把一部分不需要的資料消除
         originImage = inputImage
-        truncatedImage = self.TruncateUnecessaryPart(inputImage, self.topZBounding, self.botZBounding)
+        truncatedImage = self.truncateUnecessaryBodyPart(inputImage)
 
         result = PectoralSideModule.EvaluatePectoralSide(truncatedImage, pectoralSmoothingIterations)
 
@@ -459,6 +458,18 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         segmentationNode.SetName(self.chectWallSegNodeName)
         segmentationNode.CreateDefaultDisplayNodes()
         segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, self.chestWallName)
+    
+    def truncateUnecessaryBodyPart(self, image, expansion = 3):
+        imageSize = image.GetSize()
+
+        topZBounding, botZBounding = self.calculateBreastBoundingBox()
+
+        topZBounding = max(topZBounding - expansion, 0)
+        botZBounding = min(botZBounding + expansion + 1, imageSize[2])
+
+        truncated = image[:, :, topZBounding : botZBounding]
+
+        return truncated
     
     def calculateBreastBoundingBox(self):
         #頂端為0，底端為max
@@ -469,8 +480,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             breastModelSegNode = slicer.util.getNode(self.breastModelName + str(i) + "_segmentation")
 
             image = self.segmentsToSitkImage(breastModelSegNode, True)
-            PectoralSideModule.CreateNewVolumeNode(image, str(i))
-
             bounding = PectoralSideModule.GetBinaryBoundingBox(image) #[xstart, ystart, zstart, xsize, ysize, zsize]
 
             topZBounding = bounding[2] if topZBounding > bounding[2] else topZBounding
@@ -482,20 +491,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         self.botZBounding = botZBounding
 
         return topZBounding, botZBounding
-
-
-    def TruncateUnecessaryPart(self, image, topZBounding = 0, botZBounding = 0, expansion = 3):
-        imageSize = image.GetSize()
-
-        """
-        topZBounding = max(topZBounding - expansion, 0)
-        botZBounding = min(botZBounding + expansion + 1, imageSize[2])
-        truncated = image[:, :, topZBounding : botZBounding]
-        """
-
-        truncated = image[:, :, imageSize[2] // 5:]
-
-        return truncated
 
     def sitkImageToVtkOrientedImage(self, img):
         imgNode = sitkUtils.PushVolumeToSlicer(img)
@@ -613,7 +608,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             breastModelSeg.CopySegmentFromSegmentation(chestWallSeg, sourceSegmentId)
 
             image = self.segmentsToSitkImage(breastModelSegNode)
-            PectrolSideModule.CreateNewVolumeNode(image, self.breastModelName + str(n) + "_Raw")
 
             # (281黃, 206綠, 268紅)
             image_shape = image.GetSize()
@@ -652,6 +646,10 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
                 segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_" + str(n), [1.0, 1.0, 0.0])
             else:
                 segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_" + str(n), [0.0, 0.0, 1.0])
+            
+            #把加上去的chestwall移除
+            chestWallSegId = breastModelSeg.GetSegmentIdBySegmentName(self.chestWallName)
+            breastModelSeg.RemoveSegment(chestWallSegId)
 
             # show in 3d
             segmentationNode.CreateClosedSurfaceRepresentation()
