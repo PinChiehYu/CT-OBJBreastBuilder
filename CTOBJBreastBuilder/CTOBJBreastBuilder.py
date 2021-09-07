@@ -262,7 +262,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.OBJTextureSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJInputDataSelect)
         
         # 按鈕行為
-        self.createChestWallButton.connect('clicked(bool)', self.onEstimateButton)
+        self.createChestWallButton.connect('clicked(bool)', self.onCreateChestWallButton)
         self.colorButton.connect("clicked(bool)", self.onSelectColor)
         self.textureButton.connect("clicked(bool)", self.onTextureButton)
         self.preprocessButton.connect("clicked(bool)", self.onPreprocessButton)
@@ -270,7 +270,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.setupButton.connect("clicked(bool)", self.onSetupButton)
         self.transformButton.connect("clicked(bool)", self.onTransformButton)
         self.exportButton.connect("clicked(bool)", self.onExportButton)
-        self.breastvolumeButton.connect("clicked(bool)", self.onBreastvolumeButton)
+        self.breastvolumeButton.connect("clicked(bool)", self.onBreastVolumeButton)
         self.statButton.connect('clicked(bool)', self.calculateStatistics)
         self.segmentationGeometryButton.connect('clicked(bool)', self.onSegmentationGeometryButton)
 
@@ -311,7 +311,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
     def onExportButton(self):
         self.logic.changeType(self.inputCTSelector.currentNode())
 
-    def onBreastvolumeButton(self):
+    def onBreastVolumeButton(self):
         self.logic.breastVolume()
         #self.logic.calculateBreastBoundingBox()
 
@@ -327,7 +327,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
     def onOBJInputDataSelect(self):
         self.textureButton.enabled = self.inputModelSelector.currentNode() and self.OBJTextureSelector.currentNode()
 
-    def onEstimateButton(self):
+    def onCreateChestWallButton(self):
         self.logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
     
     def onSegmentationGeometryButton(self):
