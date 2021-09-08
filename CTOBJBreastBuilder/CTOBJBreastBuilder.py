@@ -312,7 +312,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.logic.changeType(self.inputCTSelector.currentNode())
 
     def onBreastVolumeButton(self):
-        self.logic.breastVolume()
+        self.logic.createBreastVolume()
 
     def setPoint(self):
         self.markupPointWidget.setCurrentNode(self.pointSelector.currentNode())
@@ -423,8 +423,10 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
         self.breastModelName = "Breast_"
 
-        self.topZBounding = 0
-        self.botZBounding = 0
+        #兩側胸部model的bounding box
+        #[xmin, xmax, ymin, ymax, zmin, zmax]
+        self.breastBounding = [sys.maxsize, 0, sys.maxsize, 0, sys.maxsize, 0]
+        self.chestWallBounding = [sys.maxsize, 0, sys.maxsize, 0, sys.maxsize, 0]
 
     def HasImageData(self,volumeNode):
         """This is an example logic method that
@@ -441,6 +443,10 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
     # Actual algorithm
     def createChestWall(self, inputVolume, pectoralSmoothingIterations=4000):
+        #避免已經建立好胸壁又再次執行這個步驟
+        if slicer.mrmlScene.GetFirstNodeByName(self.chectWallSegNodeName) is not None:
+            print(self.chectWallSegNodeName + " already exists!")
+            return
 
         logging.info('Processing started')
         inputImage = sitkUtils.PullVolumeFromSlicer(inputVolume) #對應:sitkUtils.PushVolumeFromSlicer
@@ -454,43 +460,48 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         result = PectoralSideModule.EvaluatePectoralSide(truncatedImage, pectoralSmoothingIterations)
 
         vtk_result = self.sitkImageToVtkOrientedImage(result)
-        segmentationNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        segmentationNode.SetName(self.chectWallSegNodeName)
-        segmentationNode.CreateDefaultDisplayNodes()
-        segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, self.chestWallName)
+        segNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+        segNode.SetName(self.chectWallSegNodeName)
+        segNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
+        segNode.CreateDefaultDisplayNodes()
+        segNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, self.chestWallName)
     
     def truncateUnecessaryBodyPart(self, image, expansion = 3):
         imageSize = image.GetSize()
 
-        topZBounding, botZBounding = self.calculateBreastBoundingBox()
+        self.calculateBreastBoundingBox()
 
-        topZBounding = max(topZBounding - expansion, 0)
-        botZBounding = min(botZBounding + expansion + 1, imageSize[2])
+        topZBounding = max(self.breastBounding[4] - expansion, 0)
+        botZBounding = min(self.breastBounding[5] + expansion + 1, imageSize[2])
 
         truncated = image[:, :, topZBounding : botZBounding]
 
         return truncated
     
     def calculateBreastBoundingBox(self):
-        #頂端為0，底端為max
-        topZBounding = sys.maxsize
-        botZBounding = 0
-
         for i in range(self.numOfBreast):
             breastModelSegNode = slicer.util.getNode(self.breastModelName + str(i) + "_segmentation")
 
             image = self.segmentsToSitkImage(breastModelSegNode, True)
             bounding = PectoralSideModule.GetBinaryBoundingBox(image) #[xstart, ystart, zstart, xsize, ysize, zsize]
 
-            topZBounding = bounding[2] if topZBounding > bounding[2] else topZBounding
-            botZBounding = bounding[2] + bounding[5] if bounding[2] + bounding[5] > botZBounding else botZBounding
-        
-        print("top:" + str(topZBounding) + ", bot:" + str(botZBounding))
+            for axis in range(3):
+                axis_min = axis * 2
+                axis_max = axis * 2 + 1
+                self.breastBounding[axis_min] = bounding[axis] if self.breastBounding[axis_min] > bounding[axis] else self.breastBounding[axis_min]
+                self.breastBounding[axis_max] = bounding[axis] + bounding[axis + 3] if bounding[axis] + bounding[axis + 3] > self.breastBounding[axis_max] else self.breastBounding[axis_max]
+    
+    def calculateChestWallBoundingBox(self):
+        chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
 
-        self.topZBounding = topZBounding
-        self.botZBounding = botZBounding
+        image = self.segmentsToSitkImage(chestWallSegNode, True)
+        bounding = PectoralSideModule.GetBinaryBoundingBox(image) #[xstart, ystart, zstart, xsize, ysize, zsize]
 
-        return topZBounding, botZBounding
+        for axis in range(3):
+            axis_min = axis * 2
+            axis_max = axis * 2 + 1
+            self.chestWallBounding[axis_min] = bounding[axis] if self.chestWallBounding[axis_min] > bounding[axis] else self.chestWallBounding[axis_min]
+            self.chestWallBounding[axis_max] = bounding[axis] + bounding[axis + 3] if bounding[axis] + bounding[axis + 3] > self.chestWallBounding[axis_max] else self.chestWallBounding[axis_max]
 
     def sitkImageToVtkOrientedImage(self, img):
         imgNode = sitkUtils.PushVolumeToSlicer(img)
@@ -509,7 +520,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
     ###以下是transform部分###
     def transformSetup(self, segmentationNode):
-
         segmentationDisplayNode = segmentationNode.GetDisplayNode()
         segmentation = segmentationNode.GetSegmentation()
 
@@ -542,7 +552,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         return True
     
     def performTransform(self, modelNode, segNode):
-
         transformNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformNode")
         transformNode.SetName("Registration Transform")
         parameters = {}
@@ -596,63 +605,72 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             slicer.modules.segmentations.logic().ImportModelToSegmentationNode(modelNode, segNode)
             segNode.CreateBinaryLabelmapRepresentation()
 
-    def breastVolume(self):
-        ### 移動test_seg到胸部的segmentation
+    def createBreastVolume(self):
         chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
         chestWallSeg = chestWallSegNode.GetSegmentation()
         sourceSegmentId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
 
+        closedBreastSegNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+        closedBreastSegNode.SetName("ClosedBreastSegNode")
+        closedBreastSegNode.CreateDefaultDisplayNodes()
+
+        #計算bounding box(目前Reload後須重新計算，完整整合後可移除)
+        self.calculateBreastBoundingBox()
+        self.calculateChestWallBoundingBox()
+        
+        #Y軸範圍(基於胸壁厚度)
+        y_length = self.chestWallBounding[3] - self.chestWallBounding[2]
+        y_max = self.chestWallBounding[2] + y_length // 3 #可調整比例以符合數據
+
         for n in range(self.numOfBreast):
+            # 複製一份胸壁segment到胸部segment
             breastModelSegNode = slicer.util.getNode(self.breastModelName + str(n) + "_segmentation")
             breastModelSeg = breastModelSegNode.GetSegmentation()
             breastModelSeg.CopySegmentFromSegmentation(chestWallSeg, sourceSegmentId)
 
-            image = self.segmentsToSitkImage(breastModelSegNode)
+            image = self.segmentsToSitkImage(breastModelSegNode, True)
 
-            # (281黃, 206綠, 268紅)
-            image_shape = image.GetSize()
-            for i in range(int(image_shape[2] * 2 / 3)):
-                find_img = image[0:image_shape[0], 0:image_shape[1], i]
-                # 2d array.shape=(1024,1024)
-                # 總共會有三個值0,1,2
-                # 測試方法 array[array==1]
-                array = sitk.GetArrayFromImage(find_img)
-                tmp = array[array==1]
-                if(tmp.shape==0):
-                    continue
-
-                for j in range(image_shape[0]):
-                    check = False
-                    for k in range(int(image_shape[1]//3)):
-                        # 先確定碰到點
-                        if check==False and array[k][j]==1:
-                            check = True
-                        # 再往後長  
-                        elif check==True and array[k][j]==0:
-                            array[k][j]=1
-        
-                res = sitk.GetImageFromArray(array)
-                image = sitk.Paste(
-                            destinationImage = image,
-                            sourceImage = sitk.JoinSeries(res),
-                            sourceSize = [image_shape[0], image_shape[1], 1],
-                            sourceIndex = [0, 0, 0],
-                            destinationIndex = [0, 0, i])
-            
-            vtkt = self.sitkImageToVtkOrientedImage(image)
-            segmentationNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-
-            if n==0:
-                segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_" + str(n), [1.0, 1.0, 0.0])
-            else:
-                segmentationNode.AddSegmentFromBinaryLabelmapRepresentation(vtkt, "closed_breast_" + str(n), [0.0, 0.0, 1.0])
-            
             #把加上去的chestwall移除
             chestWallSegId = breastModelSeg.GetSegmentIdBySegmentName(self.chestWallName)
             breastModelSeg.RemoveSegment(chestWallSegId)
 
-            # show in 3d
-            segmentationNode.CreateClosedSurfaceRepresentation()
+            # (281黃, 206綠, 268紅)
+            image_shape = image.GetSize()
+            for z in range(self.breastBounding[4], self.breastBounding[5] + 1): #Z軸
+                axialSlice = image[0:image_shape[0], 0:image_shape[1], z]
+
+                for x in range(self.breastBounding[0], self.breastBounding[1] + 1): #X軸
+                    start_growing = False
+                    #從胸部前緣，最多走到胸腔的1/2處
+                    for y in range(self.breastBounding[2], y_max): #Y軸
+                        # 先確定碰到點
+                        if not start_growing and axialSlice[x, y] == 1:
+                            start_growing = True
+                        # 再往後長  
+                        elif start_growing and axialSlice[x, y] == 0:
+                            axialSlice[x, y] = 1
+                        # 長到碰到胸壁
+                        elif start_growing and axialSlice[x, y] == 2:
+                            break
+        
+                #res = sitk.GetImageFromArray(array)
+                image = sitk.Paste(
+                            destinationImage = image,
+                            sourceImage = axialSlice,
+                            sourceSize = [image_shape[0], image_shape[1], 1],
+                            sourceIndex = [0, 0, 0],
+                            destinationIndex = [0, 0, z])
+            
+            image = sitk.Equal(image, 1)
+            vtk_image = self.sitkImageToVtkOrientedImage(image)
+
+            if n==0:
+                closedBreastSegNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_image, "ClosedBreast_" + str(n), [1.0, 1.0, 0.0])
+            else:
+                closedBreastSegNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_image, "ClosedBreast_" + str(n), [0.0, 0.0, 1.0])
+
+        # show in 3d
+        closedBreastSegNode.CreateClosedSurfaceRepresentation()
     
     def segmentsToSitkImage(self, segmentationNode, extent = False):
         mode = slicer.vtkSegmentation.EXTENT_REFERENCE_GEOMETRY if extent else slicer.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS 
