@@ -58,7 +58,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
 
         # Parameters Area
         parametersCollapsibleButton_2 = ctk.ctkCollapsibleButton()
-        parametersCollapsibleButton_2.text = "Create Breasts"
+        parametersCollapsibleButton_2.text = "OBJ Model"
         self.layout.addWidget(parametersCollapsibleButton_2)
         # Layout within the dummy collapsible button
         parametersFormLayout_2 = qt.QFormLayout(parametersCollapsibleButton_2)
@@ -97,22 +97,37 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.textureButton = qt.QPushButton("Apply Texture")
         self.textureButton.toolTip = "Paste the texture onto the model."
         self.textureButton.enabled = True
-        parametersFormLayout_2.addRow(self.textureButton)
 
         # Apply Button
         self.preprocessButton = qt.QPushButton("Remove Tape")
         self.preprocessButton.toolTip = "Remove tapes from the model."
         self.preprocessButton.enabled = True
-        parametersFormLayout_2.addRow(self.preprocessButton)
 
         # Select Breasts
         self.breastButton = qt.QPushButton("Finish Select Breasts")
         self.breastButton.toolTip = "Click after breasts are selected."
         self.breastButton.enabled = True
-        parametersFormLayout_2.addRow(self.breastButton)
-        parametersFormLayout_2.addRow(" ", None)
 
-        #input segment editor
+        tape_container = qt.QHBoxLayout()
+        tape_container.addWidget(self.textureButton)
+        tape_container.addWidget(self.preprocessButton)
+        tape_container.addWidget(self.breastButton)
+        parametersFormLayout_2.addRow(tape_container)
+
+        # Segmentation and CT 相關UI
+
+        #
+        # Parameters Area
+        #
+        parametersCollapsibleButton = ctk.ctkCollapsibleButton()
+        parametersCollapsibleButton.text = "Segmentation and CT"
+        #parametersCollapsibleButton.setFont(qt.QFont("Times", 12))
+        self.layout.addWidget(parametersCollapsibleButton)
+
+        # Layout within the dummy collapsible button
+        parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+
+        # input segment editor
         self.inputSegmenationSelector = slicer.qMRMLNodeComboBox()
         self.inputSegmenationSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
         self.inputSegmenationSelector.selectNodeUponCreation = True
@@ -121,75 +136,17 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.inputSegmenationSelector.noneEnabled = False
         self.inputSegmenationSelector.showHidden = False
         self.inputSegmenationSelector.showChildNodeTypes = False
-        self.inputSegmenationSelector.setMRMLScene( slicer.mrmlScene )
-        self.inputSegmenationSelector.setToolTip( "Segmentation" )
-        parametersFormLayout_2.addRow("Input Segmenation: ", self.inputSegmenationSelector)
-
-        # Setup Button
-        self.setupButton = qt.QPushButton("Setup")
-        self.setupButton.toolTip = "Change segmentation lookout"
-        self.setupButton.enabled = True
-        parametersFormLayout_2.addRow(self.setupButton)
+        self.inputSegmenationSelector.setMRMLScene(slicer.mrmlScene)
+        self.inputSegmenationSelector.setToolTip("Segmentation")
+        parametersFormLayout.addRow("Input Segmenation( Skin and Bone ): ", self.inputSegmenationSelector)
 
         # Transform Button
         self.transformButton = qt.QPushButton("Apply Transform")
         self.transformButton.toolTip = "Transform"
         self.transformButton.enabled = True
-        parametersFormLayout_2.addRow(self.transformButton)
-
-        # Model to Segment Button
-        self.exportButton = qt.QPushButton("Change Model Type")
-        self.exportButton.toolTip = "Export input model to segment"
-        parametersFormLayout_2.addRow(self.exportButton)
-
-        # Testing
-        self.breastvolumeButton = qt.QPushButton("Create Closed Breast")
-        self.breastvolumeButton.toolTip = ""
-        parametersFormLayout_2.addRow(self.breastvolumeButton)
-        parametersFormLayout_2.addRow(" ", None)
-        
-        #
-        # Resampling Widget
-        #
-        self.segmentSelector = slicer.qMRMLNodeComboBox()
-        self.segmentSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
-        self.segmentSelector.selectNodeUponCreation = True
-        self.segmentSelector.addEnabled = False
-        self.segmentSelector.removeEnabled = False
-        self.segmentSelector.noneEnabled = False
-        self.segmentSelector.showHidden = False
-        self.segmentSelector.showChildNodeTypes = False
-        self.segmentSelector.setMRMLScene( slicer.mrmlScene )
-        self.segmentSelector.setToolTip( "Pick the input to the algorithm." )
-        parametersFormLayout_2.addRow("Segmentation : ", self.segmentSelector)
-        
-        self.oversamplingFactorSpinBox = qt.QDoubleSpinBox()
-        self.oversamplingFactorSpinBox.setRange(0.05, 2.0)
-        self.oversamplingFactorSpinBox.setSingleStep(0.05)
-        self.oversamplingFactorSpinBox.setValue(0.5)
-
-        self.segmentationGeometryButton = qt.QPushButton("Change Sampling")
-        self.segmentationGeometryButton.toolTip = "Press to change sampling factor."
-        self.segmentationGeometryButton.enabled = True
-        self.layout.addWidget(self.segmentationGeometryButton)
-
-        container = qt.QHBoxLayout()
-        container.addWidget(self.oversamplingFactorSpinBox)
-        container.addWidget(self.segmentationGeometryButton)
-        parametersFormLayout_2.addRow("Over Sampling Factor : ", container)
-
-        # CT相關UI
-
-        #
-        # Parameters Area
-        #
-        parametersCollapsibleButton = ctk.ctkCollapsibleButton()
-        parametersCollapsibleButton.text = "Create Chestwall"
-        #parametersCollapsibleButton.setFont(qt.QFont("Times", 12))
-        self.layout.addWidget(parametersCollapsibleButton)
-
-        # Layout within the dummy collapsible button
-        parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+        #self.transformButton.setFont(qt.QFont("Times", 12, qt.QFont.Black))
+        parametersFormLayout.addRow(self.transformButton)
+        parametersFormLayout.addRow(" ", None)
 
         #
         # input volume selector
@@ -221,15 +178,55 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.createChestWallButton = qt.QPushButton("Create Chestwall")
         self.createChestWallButton.toolTip = "Run the algorithm."
         self.createChestWallButton.enabled = False
-        self.createChestWallButton.setFont(qt.QFont("Times", 15, qt.QFont.Black))
+        #self.createChestWallButton.setFont(qt.QFont("Times", 12, qt.QFont.Black))
         parametersFormLayout.addRow(self.createChestWallButton)
+        parametersFormLayout.addRow(" ", None)
 
         #
-        # Editting Segmentation
+        # Resampling Widget
+        #
+        self.segmentSelector = slicer.qMRMLNodeComboBox()
+        self.segmentSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
+        self.segmentSelector.selectNodeUponCreation = True
+        self.segmentSelector.addEnabled = False
+        self.segmentSelector.removeEnabled = False
+        self.segmentSelector.noneEnabled = False
+        self.segmentSelector.showHidden = False
+        self.segmentSelector.showChildNodeTypes = False
+        self.segmentSelector.setMRMLScene(slicer.mrmlScene)
+        self.segmentSelector.setToolTip("Pick the input to the algorithm.")
+        parametersFormLayout.addRow("Output Chestwall Segmentation : ", self.segmentSelector)
+
+        self.oversamplingFactorSpinBox = qt.QDoubleSpinBox()
+        self.oversamplingFactorSpinBox.setRange(0.05, 2.0)
+        self.oversamplingFactorSpinBox.setSingleStep(0.05)
+        self.oversamplingFactorSpinBox.setValue(0.5)
+
+        self.segmentationGeometryButton = qt.QPushButton("Change Sampling")
+        self.segmentationGeometryButton.toolTip = "Press to change sampling factor."
+        self.segmentationGeometryButton.enabled = True
+        self.layout.addWidget(self.segmentationGeometryButton)
+
+        container = qt.QHBoxLayout()
+        container.addWidget(self.oversamplingFactorSpinBox)
+        container.addWidget(self.segmentationGeometryButton)
+        parametersFormLayout.addRow("Over Sampling Factor : ", container)
+
+        # Create Closed Breast Button
+        self.breastvolumeButton = qt.QPushButton("Create Closed Breast")
+        self.breastvolumeButton.toolTip = ""
+        self.breastvolumeButton.enabled = True
+        #self.breastvolumeButton.setFont(qt.QFont("Times", 12, qt.QFont.Black))
+        parametersFormLayout.addRow(self.breastvolumeButton)
+        parametersFormLayout.addRow(" ", None)
+
+
+        #
+        # Editing Segmentation
         #
         segmentationEditorCollapsibleButton = ctk.ctkCollapsibleButton()
-        segmentationEditorCollapsibleButton.text = "Editting Segmentation"
-        segmentationEditorCollapsibleButton.setFont(qt.QFont("Times", 12))
+        segmentationEditorCollapsibleButton.text = "Editing Segmentation"
+        #segmentationEditorCollapsibleButton.setFont(qt.QFont("Times", 12))
         segmentationEditorCollapsibleButton.collapsed = True
         self.layout.addWidget(segmentationEditorCollapsibleButton)
 
@@ -251,7 +248,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.statButton = qt.QPushButton("Calculate Statistics")
         self.statButton.toolTip = "Calculate statistics."
         self.statButton.enabled = True
-        self.statButton.setFont(qt.QFont("Times", 24, qt.QFont.Black))
+        self.statButton.setFont(qt.QFont("Times", 15, qt.QFont.Black))
         segmentationEditorFormLayout.addWidget(self.statButton)
 
 
@@ -260,6 +257,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.inputCTSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputVolumeSelect)
         self.inputModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJInputDataSelect)
         self.OBJTextureSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJInputDataSelect)
+        self.inputSegmenationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSegmentSelect)
         
         # 按鈕行為
         self.createChestWallButton.connect('clicked(bool)', self.onCreateChestWallButton)
@@ -267,9 +265,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.textureButton.connect("clicked(bool)", self.onTextureButton)
         self.preprocessButton.connect("clicked(bool)", self.onPreprocessButton)
         self.breastButton.connect("clicked(bool)", self.onBreastButton)
-        self.setupButton.connect("clicked(bool)", self.onSetupButton)
         self.transformButton.connect("clicked(bool)", self.onTransformButton)
-        self.exportButton.connect("clicked(bool)", self.onExportButton)
         self.breastvolumeButton.connect("clicked(bool)", self.onBreastVolumeButton)
         self.statButton.connect('clicked(bool)', self.calculateStatistics)
         self.segmentationGeometryButton.connect('clicked(bool)', self.onSegmentationGeometryButton)
@@ -277,6 +273,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         # Refresh Apply button state
         self.onInputVolumeSelect()
         self.onOBJInputDataSelect()
+        self.onInputSegmentSelect()
 
     def onSelectColor(self):
         self.targetColor = qt.QColorDialog.getColor()
@@ -296,20 +293,15 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.breastButton.enabled = True
         self.logic.setupFiducialNodeOperation()
 
-    def onSetupButton(self):
-        # setting current segment node    
-        
+    def onTransformButton(self):
+
         # 待修正：如果沒有要讓使用者選擇SegmentationNode就不需要開Selector
         current = slicer.util.getNode("Segmentation")
         self.inputSegmenationSelector.setCurrentNode(current)
         self.inputSegmenationSelector.setMRMLScene(slicer.mrmlScene)
-        self.logic.transformSetup(self.inputSegmenationSelector.currentNode())
 
-    def onTransformButton(self):
-        self.logic.performTransform(self.inputModelSelector.currentNode(), self.inputSegmenationSelector.currentNode())
+        self.logic.performTransform(self.inputModelSelector.currentNode(), self.inputSegmenationSelector.currentNode(), self.inputCTSelector.currentNode())
 
-    def onExportButton(self):
-        self.logic.changeType(self.inputCTSelector.currentNode())
 
     def onBreastVolumeButton(self):
         self.logic.createBreastVolume()
@@ -325,6 +317,9 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
     
     def onOBJInputDataSelect(self):
         self.textureButton.enabled = self.inputModelSelector.currentNode() and self.OBJTextureSelector.currentNode()
+
+    def onInputSegmentSelect(self):
+        self.transformButton.enabled = self.inputSegmenationSelector.currentNode()
 
     def onCreateChestWallButton(self):
         self.logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
@@ -465,6 +460,9 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         segNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
         segNode.CreateDefaultDisplayNodes()
         segNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, self.chestWallName)
+
+        # show in 3d
+        segNode.CreateClosedSurfaceRepresentation()
     
     def truncateUnecessaryBodyPart(self, image, expansion = 3):
         imageSize = image.GetSize()
@@ -551,7 +549,14 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
         return True
     
-    def performTransform(self, modelNode, segNode):
+    def performTransform(self, modelNode, segmentationNode, inputVolume):
+
+        # step1
+        # 改seg顏色, 改fid node名字
+        self.transformSetup(segmentationNode)
+
+        # step2
+        # 做transform
         transformNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformNode")
         transformNode.SetName("Registration Transform")
         parameters = {}
@@ -595,6 +600,14 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
                 breastNode.SetAndObservePolyData(applyTransform.GetOutput())
 
+        # step3
+        # change data type
+        self.changeType(inputVolume)
+
+        # 不必要的model眼睛關起來
+        modifyModelNode = slicer.util.getNode("Modified_Model")
+        modifyModelNode.GetDisplayNode().VisibilityOff()
+
     def changeType(self, inputVolume):    
         ### export model to seg ###
         print("export:", self.numOfBreast)
@@ -620,7 +633,7 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         
         #Y軸範圍(基於胸壁厚度)
         y_length = self.chestWallBounding[3] - self.chestWallBounding[2]
-        y_max = self.chestWallBounding[2] + y_length // 3 #可調整比例以符合數據
+        y_max = self.chestWallBounding[2] + 25  # 可調整比例以符合數據
 
         for n in range(self.numOfBreast):
             # 複製一份胸壁segment到胸部segment
@@ -636,6 +649,9 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
             # (281黃, 206綠, 268紅)
             image_shape = image.GetSize()
+            print("breast:", self.breastBounding)
+            print("chestwall:", self.chestWallBounding)
+            print("image_shape:", image_shape)
             for z in range(self.breastBounding[4], self.breastBounding[5] + 1): #Z軸
                 axialSlice = image[0:image_shape[0], 0:image_shape[1], z]
 
