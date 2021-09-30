@@ -5,7 +5,7 @@ import SimpleITK as sitk
 import numpy as np
 import copy
 
-CREATE_VOLUME_NODE_FOR_DEBUG = True
+CREATE_VOLUME_NODE_FOR_DEBUG = False
 
 def EvaluatePectoralSide(inputImage, smoothingIterations):
     #前處理

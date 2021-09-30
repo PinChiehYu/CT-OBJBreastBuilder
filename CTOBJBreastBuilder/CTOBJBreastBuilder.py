@@ -960,6 +960,8 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
             smoothedBreastPolyData = wallGenerator.generateWall(rawBreastPolyData, True)
             self.createNewModelNode(smoothedBreastPolyData, "Breast_{}".format(i))
+        
+        slicer.mrmlScene.RemoveNode(self.modifidedModelNode)
     
 class BreastWallGenerator():
     def generateWall(self, breastPolyData, ripEdge):
