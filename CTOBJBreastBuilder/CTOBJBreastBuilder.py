@@ -164,15 +164,6 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         parametersFormLayout.addRow("Input Volume: ", self.inputCTSelector)
 
         #
-        # Pectoral Smoothing Iterations Spin Box
-        #
-        self.pectoralSmoothingIterationSpinBox = qt.QSpinBox()
-        self.pectoralSmoothingIterationSpinBox.setRange(0, 20000)
-        self.pectoralSmoothingIterationSpinBox.setSingleStep(500)
-        self.pectoralSmoothingIterationSpinBox.setValue(4000)
-        parametersFormLayout.addRow("Pectoral Smoothing Iterations: ", self.pectoralSmoothingIterationSpinBox)
-
-        #
         # Estimate Volume Button
         #
         self.createChestWallButton = qt.QPushButton("Create Chestwall")
@@ -322,7 +313,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.transformButton.enabled = self.inputSegmenationSelector.currentNode()
 
     def onCreateChestWallButton(self):
-        self.logic.createChestWall(self.inputCTSelector.currentNode(), self.pectoralSmoothingIterationSpinBox.value)
+        self.logic.createChestWall(self.inputCTSelector.currentNode())
     
     def onSegmentationGeometryButton(self):
         segmentationNode = self.segmentSelector.currentNode()
