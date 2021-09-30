@@ -339,6 +339,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
                 print("Segment {}/{} failed to be resampled".format(segmentationNode.GetName(), currentSegmentID))
 
         segmentationNode.Modified()
+        segmentationNode.CreateClosedSurfaceRepresentation()
 
         print("Finish Resolution Changing")
 
