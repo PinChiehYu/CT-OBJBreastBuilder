@@ -217,8 +217,6 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         #
         segmentationEditorCollapsibleButton = ctk.ctkCollapsibleButton()
         segmentationEditorCollapsibleButton.text = "Editing Segmentation"
-        #segmentationEditorCollapsibleButton.setFont(qt.QFont("Times", 12))
-        segmentationEditorCollapsibleButton.collapsed = True
         self.layout.addWidget(segmentationEditorCollapsibleButton)
 
         # Layout within the dummy collapsible button
