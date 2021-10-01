@@ -179,6 +179,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.segmentSelector = slicer.qMRMLNodeComboBox()
         self.segmentSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
         self.segmentSelector.selectNodeUponCreation = True
+        self.segmentSelector.editEnabled = False
         self.segmentSelector.addEnabled = False
         self.segmentSelector.removeEnabled = False
         self.segmentSelector.noneEnabled = False
@@ -291,9 +292,8 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
 
         self.logic.performTransform(self.inputModelSelector.currentNode(), self.inputSegmenationSelector.currentNode(), self.inputCTSelector.currentNode())
 
-
     def onBreastVolumeButton(self):
-        self.logic.createBreastVolume()
+        self.logic.createBreastVolume(self.inputModelSelector.currentNode())
 
     def setPoint(self):
         self.markupPointWidget.setCurrentNode(self.pointSelector.currentNode())
@@ -439,7 +439,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         inputImage = sitk.Flip(inputImage, [direction[0] < 0, direction[4] < 0, direction[8] < 0]) # 根據旋轉矩陣確保所有病人的座標方向一致
 
         #把一部分不需要的資料消除
-        originImage = inputImage
         truncatedImage = self.truncateUnecessaryBodyPart(inputImage)
 
         result = PectoralSideModule.EvaluatePectoralSide(truncatedImage, pectoralSmoothingIterations)
@@ -608,13 +607,16 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             slicer.modules.segmentations.logic().ImportModelToSegmentationNode(modelNode, segNode)
             segNode.CreateBinaryLabelmapRepresentation()
 
-    def createBreastVolume(self):
+    def createBreastVolume(self, inputVolume):
         chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
         chestWallSeg = chestWallSegNode.GetSegmentation()
         sourceSegmentId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
 
         closedBreastSegNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         closedBreastSegNode.SetName("ClosedBreastSegNode")
+        #把胸壁加到最後的seg node底下
+        closedBreastSegNode.GetSegmentation().CopySegmentFromSegmentation(chestWallSeg, sourceSegmentId)
+        closedBreastSegNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
         closedBreastSegNode.CreateDefaultDisplayNodes()
 
         #計算bounding box(目前Reload後須重新計算，完整整合後可移除)
