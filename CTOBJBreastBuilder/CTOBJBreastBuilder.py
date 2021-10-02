@@ -610,12 +610,14 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
     def createBreastVolume(self, inputVolume):
         chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
         chestWallSeg = chestWallSegNode.GetSegmentation()
-        sourceSegmentId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
+        chestWallSegId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
+        chestWallSegNode.GetDisplayNode().VisibilityOff()
 
         closedBreastSegNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         closedBreastSegNode.SetName("ClosedBreastSegNode")
+        closedBreastSegNode.SetAttribute(attr_tag, "CloseBreast")
         #把胸壁加到最後的seg node底下
-        closedBreastSegNode.GetSegmentation().CopySegmentFromSegmentation(chestWallSeg, sourceSegmentId)
+        closedBreastSegNode.GetSegmentation().CopySegmentFromSegmentation(chestWallSeg, chestWallSegId)
         closedBreastSegNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
         closedBreastSegNode.CreateDefaultDisplayNodes()
 
@@ -631,13 +633,14 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             # 複製一份胸壁segment到胸部segment
             breastModelSegNode = slicer.util.getNode(self.breastModelName + str(n) + "_segmentation")
             breastModelSeg = breastModelSegNode.GetSegmentation()
-            breastModelSeg.CopySegmentFromSegmentation(chestWallSeg, sourceSegmentId)
+            breastModelSeg.CopySegmentFromSegmentation(chestWallSeg, chestWallSegId)
 
             image = self.segmentsToSitkImage(breastModelSegNode, True)
 
             #把加上去的chestwall移除
             chestWallSegId = breastModelSeg.GetSegmentIdBySegmentName(self.chestWallName)
             breastModelSeg.RemoveSegment(chestWallSegId)
+            breastModelSegNode.GetDisplayNode().VisibilityOff()
 
             # (281黃, 206綠, 268紅)
             image_shape = image.GetSize()
