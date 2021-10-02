@@ -17,6 +17,8 @@ import qt
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from vtk.util import numpy_support
 
+attr_tag = "CTOBJ.ATTRIBUTE"
+
 #
 # CTOBJBreastBuilder
 #
@@ -64,33 +66,35 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         parametersFormLayout_2 = qt.QFormLayout(parametersCollapsibleButton_2)
 
         # input model selector
-        self.inputModelSelector = slicer.qMRMLNodeComboBox()
-        self.inputModelSelector.nodeTypes = ["vtkMRMLModelNode"]
-        self.inputModelSelector.selectNodeUponCreation = True
-        self.inputModelSelector.addEnabled = False
-        self.inputModelSelector.removeEnabled = False
-        self.inputModelSelector.noneEnabled = False
-        self.inputModelSelector.showHidden = False
-        self.inputModelSelector.showChildNodeTypes = False
-        self.inputModelSelector.setMRMLScene( slicer.mrmlScene )
-        self.inputModelSelector.setToolTip( "Model" )
-        parametersFormLayout_2.addRow("Input OBJ Model: ", self.inputModelSelector)
+        self.OBJModelSelector = slicer.qMRMLNodeComboBox()
+        self.OBJModelSelector.nodeTypes = ["vtkMRMLModelNode"]
+        self.OBJModelSelector.selectNodeUponCreation = True
+        self.OBJModelSelector.addEnabled = False
+        self.OBJModelSelector.removeEnabled = False
+        self.OBJModelSelector.noneEnabled = False
+        self.OBJModelSelector.showHidden = False
+        self.OBJModelSelector.showChildNodeTypes = False
+        self.OBJModelSelector.setMRMLScene(slicer.mrmlScene)
+        self.OBJModelSelector.setToolTip("Patient's surface scanning model.")
+        parametersFormLayout_2.addRow("Input OBJ Model: ", self.OBJModelSelector)
 
         # input texture selector
         self.OBJTextureSelector = slicer.qMRMLNodeComboBox()
         self.OBJTextureSelector.nodeTypes = ["vtkMRMLVectorVolumeNode"]
+        self.OBJModelSelector.selectNodeUponCreation = True
         self.OBJTextureSelector.addEnabled = False
         self.OBJTextureSelector.removeEnabled = False
         self.OBJTextureSelector.noneEnabled = False
         self.OBJTextureSelector.showHidden = False
         self.OBJTextureSelector.showChildNodeTypes = False
         self.OBJTextureSelector.setMRMLScene(slicer.mrmlScene)
-        self.OBJTextureSelector.setToolTip("Color image containing texture image.")
+        self.OBJTextureSelector.setToolTip("Image of surface scanning.")
         parametersFormLayout_2.addRow("Texture: ", self.OBJTextureSelector)
 
         # inpute color selector
         self.colorButton = qt.QPushButton()
         self.colorButton.setStyleSheet("background-color: " + self.targetColor.name())
+        self.colorButton.setToolTip("Color of tapes.")
         parametersFormLayout_2.addRow("Marker Color:", self.colorButton)
 
         # Texture Button
@@ -104,15 +108,15 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.preprocessButton.enabled = True
 
         # Select Breasts
-        self.breastButton = qt.QPushButton("Finish Select Breasts")
-        self.breastButton.toolTip = "Click after breasts are selected."
-        self.breastButton.enabled = True
+        self.selectBreastButton = qt.QPushButton("Finish Select Breasts")
+        self.selectBreastButton.toolTip = "Click after breasts are selected."
+        self.selectBreastButton.enabled = True
 
-        tape_container = qt.QHBoxLayout()
-        tape_container.addWidget(self.textureButton)
-        tape_container.addWidget(self.preprocessButton)
-        tape_container.addWidget(self.breastButton)
-        parametersFormLayout_2.addRow(tape_container)
+        objBtnsContainer = qt.QHBoxLayout()
+        objBtnsContainer.addWidget(self.textureButton)
+        objBtnsContainer.addWidget(self.preprocessButton)
+        objBtnsContainer.addWidget(self.selectBreastButton)
+        parametersFormLayout_2.addRow(objBtnsContainer)
 
         # Segmentation and CT 相關UI
 
@@ -128,66 +132,66 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
 
         # input segment editor
-        self.inputSegmenationSelector = slicer.qMRMLNodeComboBox()
-        self.inputSegmenationSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
-        self.inputSegmenationSelector.selectNodeUponCreation = True
-        self.inputSegmenationSelector.addEnabled = False
-        self.inputSegmenationSelector.removeEnabled = False
-        self.inputSegmenationSelector.noneEnabled = False
-        self.inputSegmenationSelector.showHidden = False
-        self.inputSegmenationSelector.showChildNodeTypes = False
-        self.inputSegmenationSelector.setMRMLScene(slicer.mrmlScene)
-        self.inputSegmenationSelector.setToolTip("Segmentation")
-        parametersFormLayout.addRow("Input Segmenation( Skin and Bone ): ", self.inputSegmenationSelector)
+        self.segmenationSelector = slicer.qMRMLNodeComboBox()
+        self.segmenationSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
+        self.segmenationSelector.selectNodeUponCreation = True
+        self.segmenationSelector.addEnabled = False
+        self.segmenationSelector.removeEnabled = False
+        self.segmenationSelector.noneEnabled = False
+        self.segmenationSelector.showHidden = False
+        self.segmenationSelector.showChildNodeTypes = False
+        self.segmenationSelector.setMRMLScene(slicer.mrmlScene)
+        self.segmenationSelector.setToolTip("Segmentation of skins and bones")
+        parametersFormLayout.addRow("Input Segmenation( Skin and Bone ): ", self.segmenationSelector)
 
         # Transform Button
         self.transformButton = qt.QPushButton("Apply Transform")
-        self.transformButton.toolTip = "Transform"
+        self.transformButton.toolTip = "Transform breast models to correct places."
         self.transformButton.enabled = True
         #self.transformButton.setFont(qt.QFont("Times", 12, qt.QFont.Black))
         parametersFormLayout.addRow(self.transformButton)
         parametersFormLayout.addRow(" ", None)
 
         #
-        # input volume selector
+        # input CT selector
         #
-        self.inputCTSelector = slicer.qMRMLNodeComboBox()
-        self.inputCTSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        self.inputCTSelector.selectNodeUponCreation = True
-        self.inputCTSelector.addEnabled = False
-        self.inputCTSelector.removeEnabled = False
-        self.inputCTSelector.noneEnabled = False
-        self.inputCTSelector.showHidden = False
-        self.inputCTSelector.showChildNodeTypes = False
-        self.inputCTSelector.setMRMLScene( slicer.mrmlScene )
-        self.inputCTSelector.setToolTip( "Pick the input to the algorithm." )
-        parametersFormLayout.addRow("Input Volume: ", self.inputCTSelector)
+        self.CTSelector = slicer.qMRMLNodeComboBox()
+        self.CTSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        self.CTSelector.selectNodeUponCreation = True
+        self.CTSelector.addEnabled = False
+        self.CTSelector.removeEnabled = False
+        self.CTSelector.noneEnabled = False
+        self.CTSelector.showHidden = False
+        self.CTSelector.showChildNodeTypes = False
+        self.CTSelector.setMRMLScene(slicer.mrmlScene)
+        self.CTSelector.setToolTip("Patient's CT Image.")
+        parametersFormLayout.addRow("Input CT Image: ", self.CTSelector)
 
         #
         # Estimate Volume Button
         #
-        self.createChestWallButton = qt.QPushButton("Create Chestwall")
-        self.createChestWallButton.toolTip = "Run the algorithm."
+        self.createChestWallButton = qt.QPushButton("Create Chest Wall")
+        self.createChestWallButton.toolTip = "Create chest wall segmentation from CT Image."
         self.createChestWallButton.enabled = False
-        #self.createChestWallButton.setFont(qt.QFont("Times", 12, qt.QFont.Black))
         parametersFormLayout.addRow(self.createChestWallButton)
         parametersFormLayout.addRow(" ", None)
 
         #
         # Resampling Widget
         #
-        self.segmentSelector = slicer.qMRMLNodeComboBox()
-        self.segmentSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
-        self.segmentSelector.selectNodeUponCreation = True
-        self.segmentSelector.editEnabled = False
-        self.segmentSelector.addEnabled = False
-        self.segmentSelector.removeEnabled = False
-        self.segmentSelector.noneEnabled = False
-        self.segmentSelector.showHidden = False
-        self.segmentSelector.showChildNodeTypes = False
-        self.segmentSelector.setMRMLScene(slicer.mrmlScene)
-        self.segmentSelector.setToolTip("Pick the input to the algorithm.")
-        parametersFormLayout.addRow("Output Chestwall Segmentation : ", self.segmentSelector)
+        self.chestWallSelector = slicer.qMRMLNodeComboBox()
+        self.chestWallSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
+        self.chestWallSelector.addAttribute("vtkMRMLSegmentationNode", attr_tag, "ChestWall")
+        self.chestWallSelector.selectNodeUponCreation = True
+        self.chestWallSelector.editEnabled = False
+        self.chestWallSelector.addEnabled = False
+        self.chestWallSelector.removeEnabled = False
+        self.chestWallSelector.noneEnabled = False
+        self.chestWallSelector.showHidden = False
+        self.chestWallSelector.showChildNodeTypes = False
+        self.chestWallSelector.setMRMLScene(slicer.mrmlScene)
+        self.chestWallSelector.setToolTip("Output segmentation of chest wall.")
+        parametersFormLayout.addRow("Output Chestwall Segmentation : ", self.chestWallSelector)
 
         self.oversamplingFactorSpinBox = qt.QDoubleSpinBox()
         self.oversamplingFactorSpinBox.setRange(0.05, 2.0)
@@ -196,20 +200,20 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
 
         self.segmentationGeometryButton = qt.QPushButton("Change Sampling")
         self.segmentationGeometryButton.toolTip = "Press to change sampling factor."
-        self.segmentationGeometryButton.enabled = True
+        self.segmentationGeometryButton.enabled = False
         self.layout.addWidget(self.segmentationGeometryButton)
 
-        container = qt.QHBoxLayout()
-        container.addWidget(self.oversamplingFactorSpinBox)
-        container.addWidget(self.segmentationGeometryButton)
-        parametersFormLayout.addRow("Over Sampling Factor : ", container)
+        samplingContainer = qt.QHBoxLayout()
+        samplingContainer.addWidget(self.oversamplingFactorSpinBox)
+        samplingContainer.addWidget(self.segmentationGeometryButton)
+        parametersFormLayout.addRow("Over Sampling Factor : ", samplingContainer)
 
         # Create Closed Breast Button
-        self.breastvolumeButton = qt.QPushButton("Create Closed Breast")
-        self.breastvolumeButton.toolTip = ""
-        self.breastvolumeButton.enabled = True
-        #self.breastvolumeButton.setFont(qt.QFont("Times", 12, qt.QFont.Black))
-        parametersFormLayout.addRow(self.breastvolumeButton)
+        self.closedBreastButton = qt.QPushButton("Create Closed Breast")
+        self.closedBreastButton.toolTip = ""
+        self.closedBreastButton.enabled = False
+        self.closedBreastButton.setToolTip("Create closed breast segmentations based on chest wal.")
+        parametersFormLayout.addRow(self.closedBreastButton)
         parametersFormLayout.addRow(" ", None)
 
 
@@ -244,26 +248,43 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
 
         # connections
         # 防呆
-        self.inputCTSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputVolumeSelect)
-        self.inputModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJInputDataSelect)
-        self.OBJTextureSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJInputDataSelect)
-        self.inputSegmenationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onInputSegmentSelect)
+        self.OBJModelSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJModelSelect)
+        self.OBJTextureSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onOBJModelSelect)
+        self.segmenationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSegmentSelect)
+        self.CTSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onCTSelect)
         
         # 按鈕行為
         self.createChestWallButton.connect('clicked(bool)', self.onCreateChestWallButton)
         self.colorButton.connect("clicked(bool)", self.onSelectColor)
         self.textureButton.connect("clicked(bool)", self.onTextureButton)
         self.preprocessButton.connect("clicked(bool)", self.onPreprocessButton)
-        self.breastButton.connect("clicked(bool)", self.onBreastButton)
+        self.selectBreastButton.connect("clicked(bool)", self.onSelectBreast)
         self.transformButton.connect("clicked(bool)", self.onTransformButton)
-        self.breastvolumeButton.connect("clicked(bool)", self.onBreastVolumeButton)
+        self.closedBreastButton.connect("clicked(bool)", self.onClosedBreastVolumeButton)
         self.statButton.connect('clicked(bool)', self.calculateStatistics)
         self.segmentationGeometryButton.connect('clicked(bool)', self.onSegmentationGeometryButton)
 
-        # Refresh Apply button state
-        self.onInputVolumeSelect()
-        self.onOBJInputDataSelect()
-        self.onInputSegmentSelect()
+        self.refreshUIState()
+    
+    def refreshUIState(self):
+        self.onOBJModelSelect()
+        self.onSegmentSelect()
+        self.onCTSelect()
+        
+        if self.chestWallSelector.currentNode():
+            self.segmentationGeometryButton.enabled = True
+            self.closedBreastButton.enabled = True
+    
+    def onOBJModelSelect(self):
+        self.textureButton.enabled = self.OBJModelSelector.currentNode() and self.OBJTextureSelector.currentNode()
+    
+    def onSegmentSelect(self):
+        self.transformButton.enabled = self.segmenationSelector.currentNode()
+
+    def onCTSelect(self):
+        self.createChestWallButton.enabled = self.CTSelector.currentNode()
+
+    ###
 
     def onSelectColor(self):
         self.targetColor = qt.QColorDialog.getColor()
@@ -271,50 +292,38 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.colorButton.update()
 
     def onTextureButton(self):
-        self.logic.showTextureOnModel(self.inputModelSelector.currentNode(), self.OBJTextureSelector.currentNode())
+        self.logic.showTextureOnModel(self.OBJModelSelector.currentNode(), self.OBJTextureSelector.currentNode())
 
     def onPreprocessButton(self):
-        self.logic.startPreprocessing(self.inputModelSelector.currentNode(), self.OBJTextureSelector.currentNode(), self.targetColor)
+        self.logic.startPreprocessing(self.OBJModelSelector.currentNode(), self.OBJTextureSelector.currentNode(), self.targetColor)
 
-    def onBreastButton(self):
+    def onSelectBreast(self):
         self.logic.truncateBreastPolyData()
         
-    def finishPreProcessing(self):
-        self.breastButton.enabled = True
+    def finishPreprocessing(self):
+        self.selectBreastButton.enabled = True
         self.logic.setupFiducialNodeOperation()
 
     def onTransformButton(self):
-
         # 待修正：如果沒有要讓使用者選擇SegmentationNode就不需要開Selector
         current = slicer.util.getNode("Segmentation")
-        self.inputSegmenationSelector.setCurrentNode(current)
-        self.inputSegmenationSelector.setMRMLScene(slicer.mrmlScene)
+        self.segmenationSelector.setCurrentNode(current)
+        self.segmenationSelector.setMRMLScene(slicer.mrmlScene)
 
-        self.logic.performTransform(self.inputModelSelector.currentNode(), self.inputSegmenationSelector.currentNode(), self.inputCTSelector.currentNode())
-
-    def onBreastVolumeButton(self):
-        self.logic.createBreastVolume(self.inputModelSelector.currentNode())
-
-    def setPoint(self):
-        self.markupPointWidget.setCurrentNode(self.pointSelector.currentNode())
-
-    def cleanup(self):
-        pass
-
-    def onInputVolumeSelect(self):
-        self.createChestWallButton.enabled = self.inputCTSelector.currentNode()
+        self.logic.performTransform(self.OBJModelSelector.currentNode(), self.segmenationSelector.currentNode(), self.CTSelector.currentNode())
     
-    def onOBJInputDataSelect(self):
-        self.textureButton.enabled = self.inputModelSelector.currentNode() and self.OBJTextureSelector.currentNode()
-
-    def onInputSegmentSelect(self):
-        self.transformButton.enabled = self.inputSegmenationSelector.currentNode()
-
     def onCreateChestWallButton(self):
-        self.logic.createChestWall(self.inputCTSelector.currentNode())
+        self.logic.createChestWall(self.CTSelector.currentNode())
+        self.segmentationGeometryButton.enabled = True
+        self.closedBreastButton.enabled = True
+        
+        self.chestWallSelector.setCurrentNode(slicer.util.getNode("ChestWallSegNode"))
+
+    def onClosedBreastVolumeButton(self):
+        self.logic.createBreastVolume(self.CTSelector.currentNode())
     
     def onSegmentationGeometryButton(self):
-        segmentationNode = self.segmentSelector.currentNode()
+        segmentationNode = self.chestWallSelector.currentNode()
 
         #Create desired geometryImageData with overSamplingFactor
         segmentationGeometryLogic = slicer.vtkSlicerSegmentationGeometryLogic()
@@ -342,10 +351,6 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         segmentationNode.CreateClosedSurfaceRepresentation()
 
         print("Finish Resolution Changing")
-
-    def onReload(self):
-        importlib.reload(PectoralSideModule)
-        ScriptedLoadableModuleWidget.onReload(self)
 
     def calculateStatistics(self):
         from SegmentStatistics import SegmentStatisticsLogic
@@ -376,6 +381,13 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
 
     def saveState(self):
         self.segmentationEditorWidget.saveStateForUndo()
+    
+    def onReload(self):
+        importlib.reload(PectoralSideModule)
+        ScriptedLoadableModuleWidget.onReload(self)
+        
+    def cleanup(self):
+        pass
 
 #
 # CTOBJBreastBuilderLogic
@@ -413,19 +425,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         self.breastBounding = [sys.maxsize, 0, sys.maxsize, 0, sys.maxsize, 0]
         self.chestWallBounding = [sys.maxsize, 0, sys.maxsize, 0, sys.maxsize, 0]
 
-    def HasImageData(self,volumeNode):
-        """This is an example logic method that
-        returns true if the passed in volume
-        node has valid image data
-        """
-        if not volumeNode:
-            logging.debug('HasImageData failed: no volume node')
-            return False
-        if volumeNode.GetImageData() is None:
-            logging.debug('HasImageData failed: no image data in volume node')
-            return False
-        return True
-
     # Actual algorithm
     def createChestWall(self, inputVolume, pectoralSmoothingIterations=4000):
         #避免已經建立好胸壁又再次執行這個步驟
@@ -446,11 +445,12 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         vtk_result = self.sitkImageToVtkOrientedImage(result)
         segNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         segNode.SetName(self.chectWallSegNodeName)
+        segNode.SetAttribute(attr_tag, "ChestWall")
         segNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
         segNode.CreateDefaultDisplayNodes()
         segNode.AddSegmentFromBinaryLabelmapRepresentation(vtk_result, self.chestWallName)
 
-        # show in 3d
+        # show in 3D
         segNode.CreateClosedSurfaceRepresentation()
     
     def truncateUnecessaryBodyPart(self, image, expansion = 3):
@@ -900,7 +900,7 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         modelNode.GetDisplayNode().VisibilityOff()
         newModelNode.GetDisplayNode().VisibilityOn()
 
-        self.widget.finishPreProcessing()
+        self.widget.finishPreprocessing()
         
         print("\n----Complete Processing----")
         stopTime = time.time()
@@ -1197,132 +1197,6 @@ class BreastWallGenerator():
         normalFilter.Update()
 
         return normalFilter.GetOutput()
-
-class PolyDataStitcher():
-    def extract_points(self, source):
-        # Travers the cells and add points while keeping their order.
-        points = source.GetPoints()
-        cells = source.GetLines()
-        cells.InitTraversal()
-        idList = vtk.vtkIdList()
-        pointIds = []
-        while cells.GetNextCell(idList):
-            for i in range(0, idList.GetNumberOfIds()):
-                pId = idList.GetId(i)
-                # Only add the point id if the previously added point does not
-                # have the same id. Avoid p->p duplications which occur for example
-                # if a poly-line is traversed. However, other types of point
-                # duplication currently are not avoided: a->b->c->a->d
-                if len(pointIds) == 0 or pointIds[-1] != pId:
-                    pointIds.append(pId)
-        result = []
-        for i in pointIds:
-            result.append(points.GetPoint(i))
-        return result
-
-    def reverse_lines(self, source):
-        strip = vtk.vtkStripper()
-        strip.SetInputData(source)
-        strip.Update()
-        reversed = vtk.vtkReverseSense()
-        reversed.SetInputConnection(strip.GetOutputPort())
-        reversed.Update()
-        return reversed.GetOutput()
-
-    def find_closest_point(self, points, samplePoint):
-        points = np.asarray(points)
-        assert(len(points.shape) == 2 and points.shape[1] == 3)
-        nPoints = points.shape[0]
-        diff = np.array(points) - np.tile(samplePoint, [nPoints, 1])
-        pId = np.argmin(np.linalg.norm(diff, axis=1))
-        return pId
-
-    def stitch(self, edge1, edge2):
-        # Extract points along the edge line (in correct order).
-        # The following further assumes that the polyline has the
-        # same orientation (clockwise or counterclockwise).
-        edge2 = self.reverse_lines(edge2)
-
-        points1 = self.extract_points(edge1)
-        points2 = self.extract_points(edge2)
-        n1 = len(points1)
-        n2 = len(points2)
-
-        # Prepare result containers.
-        # Variable points concatenates points1 and points2.
-        # Note: all indices refer to this targert container!
-        points = vtk.vtkPoints()
-        cells = vtk.vtkCellArray()
-        points.SetNumberOfPoints(n1+n2)
-        for i, p1 in enumerate(points1):
-            points.SetPoint(i, p1)
-        for i, p2 in enumerate(points2):
-            points.SetPoint(i+n1, p2)
-
-        # The following code stitches the curves edge1 with (points1) and
-        # edge2 (with points2) together based on a simple growing scheme.
-
-        # Pick a first stitch between points1[0] and its closest neighbor
-        # of points2.
-        i1Start = 0
-        i2Start = self.find_closest_point(points2, points1[i1Start])
-        i2Start += n1  # offset to reach the points2
-
-        # Initialize
-        i1 = i1Start
-        i2 = i2Start
-        p1 = np.asarray(points.GetPoint(i1))
-        p2 = np.asarray(points.GetPoint(i2))
-        mask = np.zeros(n1+n2, dtype=bool)
-        count = 0
-        while not np.all(mask):
-            count += 1
-            i1Candidate = (i1+1) % n1
-            i2Candidate = (i2+1-n1) % n2+n1
-            p1Candidate = np.asarray(points.GetPoint(i1Candidate))
-            p2Candidate = np.asarray(points.GetPoint(i2Candidate))
-            diffEdge12C = np.linalg.norm(p1-p2Candidate)
-            diffEdge21C = np.linalg.norm(p2-p1Candidate)
-
-            mask[i1] = True
-            mask[i2] = True
-            if diffEdge12C < diffEdge21C:
-                triangle = vtk.vtkTriangle()
-                triangle.GetPointIds().SetId(0, i1)
-                triangle.GetPointIds().SetId(1, i2)
-                triangle.GetPointIds().SetId(2, i2Candidate)
-                cells.InsertNextCell(triangle)
-                i2 = i2Candidate
-                p2 = p2Candidate
-            else:
-                triangle = vtk.vtkTriangle()
-                triangle.GetPointIds().SetId(0, i1)
-                triangle.GetPointIds().SetId(1, i2)
-                triangle.GetPointIds().SetId(2, i1Candidate)
-                cells.InsertNextCell(triangle)
-                i1 = i1Candidate
-                p1 = p1Candidate
-
-        # Add the last triangle.
-        i1Candidate = (i1+1) % n1
-        i2Candidate = (i2+1-n1) % n2+n1
-        if (i1Candidate <= i1Start) or (i2Candidate <= i2Start):
-            if i1Candidate <= i1Start:
-                iC = i1Candidate
-            else:
-                iC = i2Candidate
-            triangle = vtk.vtkTriangle()
-            triangle.GetPointIds().SetId(0, i1)
-            triangle.GetPointIds().SetId(1, i2)
-            triangle.GetPointIds().SetId(2, iC)
-            cells.InsertNextCell(triangle)
-
-        poly = vtk.vtkPolyData()
-        poly.SetPoints(points)
-        poly.SetPolys(cells)
-        poly.BuildLinks()
-
-        return poly
 """
 
 class CTOBJBreastBuilderTest(ScriptedLoadableModuleTest):
@@ -1368,5 +1242,5 @@ class CTOBJBreastBuilderTest(ScriptedLoadableModuleTest):
 
         volumeNode = slicer.util.getNode(pattern="FA")
         logic = CTOBJBreastBuilderLogic()
-        self.assertIsNotNone( logic.HasImageData(volumeNode) )
+        #self.assertIsNotNone( logic.HasImageData(volumeNode) )
         self.delayDisplay('Test passed!')
