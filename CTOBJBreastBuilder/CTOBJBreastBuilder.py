@@ -506,38 +506,6 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
         return vtkOrientedImage
 
     ###以下是transform部分###
-    def transformSetup(self, segmentationNode):
-        segmentationDisplayNode = segmentationNode.GetDisplayNode()
-        segmentation = segmentationNode.GetSegmentation()
-
-        segmentId1 = segmentation.GetSegmentIdBySegmentName("Bone")
-        segmentationDisplayNode.SetSegmentOpacity3D(segmentId1, 1.0)
-        segmentation.GetSegment(segmentId1).SetColor(0.0,0.8,0.0)
-
-        segmentId2 = segmentation.GetSegmentIdBySegmentName("Skin")
-        segmentationDisplayNode.SetSegmentOpacity3D(segmentId2, 0.5)
-        segmentation.GetSegment(segmentId2).SetColor(1.0,1.0,1.0)
-
-        # change fiducial node name and set to blue
-        fiducialNode = slicer.util.getNode("Fiducials")
-
-        ### 根據顏色，修改載入的fiducialNode名字
-        color = fiducialNode.GetDisplayNode().GetSelectedColor()
-        if color == (1.0, 0.0, 0.0):
-            #代表選到segnode(想要是1)
-            fiducialNode.SetName("seg_fid")
-            next_fiducialNode = slicer.util.getNode("Fiducials")
-            next_fiducialNode.SetName("model_fid")
-            next_fiducialNode.GetDisplayNode().SetSelectedColor([0.0,0.0,1.0])
-        else:
-            #代表選到modelnode(想要是2)
-            fiducialNode.SetName("model_fid")
-            fiducialNode.GetDisplayNode().SetSelectedColor([0.0,0.0,1.0])
-            next_fiducialNode = slicer.util.getNode("Fiducials")
-            next_fiducialNode.SetName("seg_fid")
-
-        return True
-    
     def performTransform(self, modelNode, segmentationNode, inputVolume):
 
         # step1
@@ -588,14 +556,38 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
                 applyTransform.Update()
 
                 breastNode.SetAndObservePolyData(applyTransform.GetOutput())
+    
+    def transformSetup(self, segmentationNode):
+        segmentationDisplayNode = segmentationNode.GetDisplayNode()
+        segmentation = segmentationNode.GetSegmentation()
 
-        # step3
-        # change data type
-        self.changeType(inputVolume)
+        segmentId1 = segmentation.GetSegmentIdBySegmentName("Bone")
+        segmentationDisplayNode.SetSegmentOpacity3D(segmentId1, 1.0)
+        segmentation.GetSegment(segmentId1).SetColor(0.0,0.8,0.0)
 
-        # 不必要的model眼睛關起來
-        modifyModelNode = slicer.util.getNode("Modified_Model")
-        modifyModelNode.GetDisplayNode().VisibilityOff()
+        segmentId2 = segmentation.GetSegmentIdBySegmentName("Skin")
+        segmentationDisplayNode.SetSegmentOpacity3D(segmentId2, 0.5)
+        segmentation.GetSegment(segmentId2).SetColor(1.0,1.0,1.0)
+
+        # change fiducial node name and set to blue
+        fiducialNode = slicer.util.getNode("Fiducials")
+
+        ### 根據顏色，修改載入的fiducialNode名字
+        color = fiducialNode.GetDisplayNode().GetSelectedColor()
+        if color == (1.0, 0.0, 0.0):
+            #代表選到segnode(想要是1)
+            fiducialNode.SetName("seg_fid")
+            next_fiducialNode = slicer.util.getNode("Fiducials")
+            next_fiducialNode.SetName("model_fid")
+            next_fiducialNode.GetDisplayNode().SetSelectedColor([0.0,0.0,1.0])
+        else:
+            #代表選到modelnode(想要是2)
+            fiducialNode.SetName("model_fid")
+            fiducialNode.GetDisplayNode().SetSelectedColor([0.0,0.0,1.0])
+            next_fiducialNode = slicer.util.getNode("Fiducials")
+            next_fiducialNode.SetName("seg_fid")
+
+        return True
 
     def changeType(self, inputVolume):    
         ### export model to seg ###
@@ -606,18 +598,19 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             segNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
             slicer.modules.segmentations.logic().ImportModelToSegmentationNode(modelNode, segNode)
             segNode.CreateBinaryLabelmapRepresentation()
+            
+            modelNode.GetDisplayNode().VisibilityOff()
 
     def createBreastVolume(self, inputVolume):
+        self.changeType(inputVolume)
+        
         chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
         chestWallSeg = chestWallSegNode.GetSegmentation()
         chestWallSegId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
-        chestWallSegNode.GetDisplayNode().VisibilityOff()
 
         closedBreastSegNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         closedBreastSegNode.SetName("ClosedBreastSegNode")
         closedBreastSegNode.SetAttribute(attr_tag, "CloseBreast")
-        #把胸壁加到最後的seg node底下
-        closedBreastSegNode.GetSegmentation().CopySegmentFromSegmentation(chestWallSeg, chestWallSegId)
         closedBreastSegNode.SetReferenceImageGeometryParameterFromVolumeNode(inputVolume)
         closedBreastSegNode.CreateDefaultDisplayNodes()
 
@@ -638,9 +631,7 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             image = self.segmentsToSitkImage(breastModelSegNode, True)
 
             #把加上去的chestwall移除
-            chestWallSegId = breastModelSeg.GetSegmentIdBySegmentName(self.chestWallName)
-            breastModelSeg.RemoveSegment(chestWallSegId)
-            breastModelSegNode.GetDisplayNode().VisibilityOff()
+            slicer.mrmlScene.RemoveNode(breastModelSegNode)
 
             # (281黃, 206綠, 268紅)
             image_shape = image.GetSize()
