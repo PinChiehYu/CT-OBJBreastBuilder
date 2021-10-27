@@ -142,7 +142,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.segmenationSelector.showChildNodeTypes = False
         self.segmenationSelector.setMRMLScene(slicer.mrmlScene)
         self.segmenationSelector.setToolTip("Segmentation of skins and bones")
-        parametersFormLayout.addRow("Input Segmenation( Skin and Bone ): ", self.segmenationSelector)
+        parametersFormLayout.addRow("Input Segmentation( Skin and Bone ): ", self.segmenationSelector)
 
         # Transform Button
         self.transformButton = qt.QPushButton("Apply Transform")
@@ -191,7 +191,7 @@ class CTOBJBreastBuilderWidget(ScriptedLoadableModuleWidget):
         self.chestWallSelector.showChildNodeTypes = False
         self.chestWallSelector.setMRMLScene(slicer.mrmlScene)
         self.chestWallSelector.setToolTip("Output segmentation of chest wall.")
-        parametersFormLayout.addRow("Output Chestwall Segmentation : ", self.chestWallSelector)
+        parametersFormLayout.addRow("Output Chest Wall Segmentation : ", self.chestWallSelector)
 
         self.oversamplingFactorSpinBox = qt.QDoubleSpinBox()
         self.oversamplingFactorSpinBox.setRange(0.05, 2.0)
@@ -556,6 +556,8 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
                 applyTransform.Update()
 
                 breastNode.SetAndObservePolyData(applyTransform.GetOutput())
+        
+        self.changeType(inputVolume)
     
     def transformSetup(self, segmentationNode):
         segmentationDisplayNode = segmentationNode.GetDisplayNode()
@@ -602,8 +604,8 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
             modelNode.GetDisplayNode().VisibilityOff()
 
     def createBreastVolume(self, inputVolume):
-        self.changeType(inputVolume)
-        
+        #self.changeType(inputVolume)
+
         chestWallSegNode = slicer.util.getNode(self.chectWallSegNodeName)
         chestWallSeg = chestWallSegNode.GetSegmentation()
         chestWallSegId = chestWallSeg.GetSegmentIdBySegmentName(self.chestWallName)
@@ -632,6 +634,8 @@ class CTOBJBreastBuilderLogic(ScriptedLoadableModuleLogic):
 
             #把加上去的chestwall移除
             slicer.mrmlScene.RemoveNode(breastModelSegNode)
+            #chestWallSegId = breastModelSeg.GetSegmentIdBySegmentName(self.chestWallName)
+            #breastModelSeg.RemoveSegment(chestWallSegId)
 
             # (281黃, 206綠, 268紅)
             image_shape = image.GetSize()
